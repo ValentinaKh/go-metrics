@@ -18,14 +18,14 @@ func ValidationPostMw(next http.Handler) http.Handler {
 	})
 }
 
-func ValidationUrlRqMw(next http.Handler) http.Handler {
+func ValidationURLRqMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		contentType := r.Header.Get("Content-Type")
 		if contentType != "text/plain" {
 			http.Error(w, "Ожидался Content-Type: text/plain", http.StatusBadRequest)
 			return
 		}
-		matches := utils.ParseUrl(r.URL.Path)
+		matches := utils.ParseURL(r.URL.Path)
 
 		if len(matches) != 4 {
 			http.Error(w, "incorrect url", http.StatusNotFound)

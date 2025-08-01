@@ -16,6 +16,6 @@ func main() {
 func run() error {
 	mux := http.NewServeMux()
 
-	mux.Handle("/", middleware.ValidationPostMw(middleware.ValidationUrlRqMw(handler.MetricsHandler(service.NewMetricsService()))))
+	mux.Handle("/", middleware.ValidationPostMw(middleware.ValidationURLRqMw(handler.MetricsHandler(service.NewMetricsService()))))
 	return http.ListenAndServe(`:8080`, mux)
 }

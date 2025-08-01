@@ -9,7 +9,7 @@ const urlPattern = "^/update/([^/]+)/([^/]+)/([^/]+$)"
 
 var matcher = regexp.MustCompile(urlPattern)
 
-func ParseUrl(url string) []string {
+func ParseURL(url string) []string {
 	return matcher.FindStringSubmatch(url)
 }
 

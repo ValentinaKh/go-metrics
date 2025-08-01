@@ -16,7 +16,7 @@ func NewMetricsService() *MetricsService {
 }
 
 func (s MetricsService) Handle(url string) error {
-	parts := utils.ParseUrl(url)
+	parts := utils.ParseURL(url)
 	var metric models.Metrics
 	switch parts[1] {
 	case models.Counter:
