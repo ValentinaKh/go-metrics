@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func MetricsHandler(service *service.MetricsService) http.HandlerFunc {
+func MetricsHandler(service service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := service.Handle(r.URL.Path)
 		if err != nil {

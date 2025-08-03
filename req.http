@@ -1,0 +1,6 @@
+POST http://localhost:8080/update/counter/someMetric/527
+Content-Type: text/plain
+
+###
+POST http://localhost:8080/update/gauge/
+Content-Type: text/plain

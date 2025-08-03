@@ -7,7 +7,10 @@ import (
 )
 
 type Storage interface {
+	// UpdateMetric обновляем метрику в хранилище
 	UpdateMetric(key string, value models.Metrics) error
+	// GetAndClear овозвращаем то, что находится в хранилище и очищаем хранилище
+	GetAndClear() map[string]*models.Metrics
 }
 
 type memStorage struct {
@@ -18,7 +21,7 @@ type memStorage struct {
 func NewMemStorage() Storage {
 	return &memStorage{
 		mutex:   sync.Mutex{},
-		storage: map[string]*models.Metrics{},
+		storage: make(map[string]*models.Metrics),
 	}
 }
 
@@ -43,8 +46,18 @@ func (s *memStorage) UpdateMetric(key string, value models.Metrics) error {
 			metric.Value = value.Value
 		}
 	}
-
 	return nil
+}
+
+func (s *memStorage) GetAndClear() map[string]*models.Metrics {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	copyMap := make(map[string]*models.Metrics)
+	for k, v := range s.storage {
+		copyMap[k] = v
+	}
+	clear(s.storage)
+	return copyMap
 }
 
 func addIntPtr(a, b *int64) *int64 {

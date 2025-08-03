@@ -7,15 +7,19 @@ import (
 	"strconv"
 )
 
-type MetricsService struct {
+type Service interface {
+	Handle(url string) error
+}
+
+type metricsService struct {
 	strg storage.Storage
 }
 
-func NewMetricsService() *MetricsService {
-	return &MetricsService{strg: storage.NewMemStorage()}
+func NewMetricsService() Service {
+	return &metricsService{strg: storage.NewMemStorage()}
 }
 
-func (s MetricsService) Handle(url string) error {
+func (s metricsService) Handle(url string) error {
 	parts := utils.ParseURL(url)
 	var metric models.Metrics
 	switch parts[1] {
