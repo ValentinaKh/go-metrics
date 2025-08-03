@@ -2,7 +2,6 @@ package agent
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 )
 
@@ -28,12 +27,7 @@ func (s *HTTPSender) Send(url string) error {
 	if err != nil {
 		return err
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			fmt.Println(err)
-		}
-	}(response.Body)
+	defer response.Body.Close()
 
 	if response.StatusCode != 200 {
 		fmt.Printf("Status Code: %d\r\n", response.StatusCode)
