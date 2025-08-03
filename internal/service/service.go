@@ -3,12 +3,13 @@ package service
 import (
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/ValentinaKh/go-metrics/internal/storage"
-	"github.com/ValentinaKh/go-metrics/internal/utils"
 	"strconv"
 )
 
 type Service interface {
-	Handle(url string) error
+	Handle(metricType, name, value string) error
+	GetMetric(name string) (string, bool)
+	GetAllMetrics() map[string]string
 }
 
 type metricsService struct {
@@ -19,12 +20,11 @@ func NewMetricsService() Service {
 	return &metricsService{strg: storage.NewMemStorage()}
 }
 
-func (s metricsService) Handle(url string) error {
-	parts := utils.ParseURL(url)
+func (s metricsService) Handle(metricType, name, value string) error {
 	var metric models.Metrics
-	switch parts[1] {
+	switch metricType {
 	case models.Counter:
-		value, err := strconv.ParseInt(parts[3], 10, 64)
+		value, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return err
 		}
@@ -33,7 +33,7 @@ func (s metricsService) Handle(url string) error {
 			Delta: &value,
 		}
 	case models.Gauge:
-		value, err := strconv.ParseFloat(parts[3], 64)
+		value, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return err
 		}
@@ -42,5 +42,35 @@ func (s metricsService) Handle(url string) error {
 			Value: &value,
 		}
 	}
-	return s.strg.UpdateMetric(parts[2], metric)
+	return s.strg.UpdateMetric(name, metric)
+}
+
+func (s metricsService) GetMetric(name string) (string, bool) {
+	metrics := s.strg.GetAllMetrics()
+	metric, ok := metrics[name]
+	if !ok {
+		return "", false
+	}
+	switch metric.MType {
+	case models.Counter:
+		return strconv.FormatInt(*metric.Delta, 10), true
+	case models.Gauge:
+		return strconv.FormatFloat(*metric.Value, 'f', -1, 64), true
+	}
+	return "", false
+}
+
+func (s metricsService) GetAllMetrics() map[string]string {
+	result := make(map[string]string)
+	for name, metric := range s.strg.GetAllMetrics() {
+		var value string
+		switch metric.MType {
+		case models.Counter:
+			value = strconv.FormatInt(*metric.Delta, 10)
+		case models.Gauge:
+			value = strconv.FormatFloat(*metric.Value, 'f', -1, 64)
+		}
+		result[name] = value
+	}
+	return result
 }

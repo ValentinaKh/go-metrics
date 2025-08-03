@@ -82,22 +82,6 @@ func TestValidationURLRqMw(t *testing.T) {
 			expectedBody:   "",
 		},
 		{
-			name:           "missing Content-Type",
-			method:         http.MethodPost,
-			contentType:    "",
-			urlPath:        "/update/gauge/cpu/0.8",
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   "Ожидался Content-Type: text/plain\n",
-		},
-		{
-			name:           "wrong Content-Type",
-			method:         http.MethodPost,
-			contentType:    "application/json",
-			urlPath:        "/update/gauge/cpu/0.8",
-			expectedStatus: http.StatusBadRequest,
-			expectedBody:   "Ожидался Content-Type: text/plain\n",
-		},
-		{
 			name:           "url has 3 parts",
 			method:         http.MethodPost,
 			contentType:    "text/plain",

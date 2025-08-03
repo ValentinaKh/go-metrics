@@ -11,6 +11,7 @@ type Storage interface {
 	UpdateMetric(key string, value models.Metrics) error
 	// GetAndClear овозвращаем то, что находится в хранилище и очищаем хранилище
 	GetAndClear() map[string]*models.Metrics
+	GetAllMetrics() map[string]*models.Metrics
 }
 
 type memStorage struct {
@@ -57,6 +58,16 @@ func (s *memStorage) GetAndClear() map[string]*models.Metrics {
 		copyMap[k] = v
 	}
 	clear(s.storage)
+	return copyMap
+}
+
+func (s *memStorage) GetAllMetrics() map[string]*models.Metrics {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	copyMap := make(map[string]*models.Metrics)
+	for k, v := range s.storage {
+		copyMap[k] = v
+	}
 	return copyMap
 }
 

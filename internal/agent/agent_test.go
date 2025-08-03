@@ -34,6 +34,10 @@ func (s *MockStorage) GetAndClear() map[string]*models.Metrics {
 	return s.storage
 }
 
+func (s *MockStorage) GetAllMetrics() map[string]*models.Metrics {
+	return s.storage
+}
+
 func Test_metricAgent_send(t *testing.T) {
 	type fields struct {
 		s              storage.Storage

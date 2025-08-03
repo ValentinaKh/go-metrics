@@ -20,6 +20,9 @@ func (ms *SMockStorage) UpdateMetric(name string, m models.Metrics) error {
 func (ms *SMockStorage) GetAndClear() map[string]*models.Metrics {
 	return ms.storage
 }
+func (ms *SMockStorage) GetAllMetrics() map[string]*models.Metrics {
+	return ms.storage
+}
 
 func TestMetricsService_Handle(t *testing.T) {
 	type fields struct {
@@ -27,14 +30,14 @@ func TestMetricsService_Handle(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		url     string
+		parts   []string
 		fields  fields
 		wantErr bool
 		want    map[string]*models.Metrics
 	}{
 		{
-			name: "valid counter",
-			url:  "/update/counter/requests/100",
+			name:  "valid counter",
+			parts: []string{"counter", "requests", "100"},
 			fields: fields{s: &SMockStorage{
 				storage: map[string]*models.Metrics{},
 				err:     nil},
@@ -46,8 +49,8 @@ func TestMetricsService_Handle(t *testing.T) {
 			}},
 		},
 		{
-			name: "valid gauge",
-			url:  "/update/gauge/cpu/0.85",
+			name:  "valid gauge",
+			parts: []string{"gauge", "cpu", "0.85"},
 			fields: fields{s: &SMockStorage{
 				storage: map[string]*models.Metrics{},
 				err:     nil},
@@ -59,8 +62,8 @@ func TestMetricsService_Handle(t *testing.T) {
 			}},
 		},
 		{
-			name: "counter with negative value",
-			url:  "/update/counter/errors/-50",
+			name:  "counter with negative value",
+			parts: []string{"counter", "errors", "-50"},
 			fields: fields{s: &SMockStorage{
 				storage: map[string]*models.Metrics{},
 				err:     nil},
@@ -72,8 +75,8 @@ func TestMetricsService_Handle(t *testing.T) {
 			}},
 		},
 		{
-			name: "invalid counter value",
-			url:  "/update/counter/requests/abc",
+			name:  "invalid counter value",
+			parts: []string{"counter", "requests", "abc"},
 			fields: fields{s: &SMockStorage{
 				storage: map[string]*models.Metrics{},
 				err:     nil},
@@ -82,8 +85,8 @@ func TestMetricsService_Handle(t *testing.T) {
 			want:    map[string]*models.Metrics{},
 		},
 		{
-			name: "invalid gauge value",
-			url:  "/update/gauge/cpu/invalid",
+			name:  "invalid gauge value",
+			parts: []string{"gauge", "cpu", "invalid"},
 			fields: fields{s: &SMockStorage{
 				storage: map[string]*models.Metrics{},
 				err:     nil},
@@ -92,8 +95,8 @@ func TestMetricsService_Handle(t *testing.T) {
 			want:    map[string]*models.Metrics{},
 		},
 		{
-			name: "storage returns error",
-			url:  "/update/counter/requests/100",
+			name:  "storage returns error",
+			parts: []string{"counter", "requests", "100"},
 			fields: fields{s: &SMockStorage{
 				storage: map[string]*models.Metrics{},
 				err:     fmt.Errorf("test error")},
@@ -110,13 +113,141 @@ func TestMetricsService_Handle(t *testing.T) {
 				strg: tt.fields.s,
 			}
 
-			err := service.Handle(tt.url)
+			err := service.Handle(tt.parts[0], tt.parts[1], tt.parts[2])
 
 			assert.Equal(t, tt.wantErr, err != nil)
 
 			if !tt.wantErr {
 				assert.Equal(t, tt.want, service.strg.(*SMockStorage).storage)
 			}
+		})
+	}
+}
+
+func TestMetricsService_GetMetric(t *testing.T) {
+	type fields struct {
+		s storage.Storage
+	}
+	tests := []struct {
+		name       string
+		fields     fields
+		metricName string
+		exist      bool
+		want       string
+	}{
+		{
+			name: "counter metric exists",
+			fields: fields{s: &SMockStorage{
+				storage: map[string]*models.Metrics{"requests": {
+					MType: models.Counter,
+					Delta: toPtr(int64(100)),
+				}},
+				err: nil},
+			},
+			metricName: "requests",
+			exist:      true,
+			want:       "100",
+		},
+		{
+			name: "gauge metric exists",
+			fields: fields{s: &SMockStorage{
+				storage: map[string]*models.Metrics{"cpu": {
+					MType: models.Gauge,
+					Value: toPtr(0.85),
+				}},
+				err: nil},
+			},
+			metricName: "cpu",
+			exist:      true,
+			want:       "0.85",
+		},
+		{
+			name: "unknown type",
+			fields: fields{s: &SMockStorage{
+				storage: map[string]*models.Metrics{"cpu": {
+					MType: "unknown",
+					Value: toPtr(0.85),
+				}},
+				err: nil},
+			},
+			metricName: "cpu",
+			exist:      false,
+			want:       "",
+		},
+		{
+			name: "unknown metric",
+			fields: fields{s: &SMockStorage{
+				storage: map[string]*models.Metrics{"cpu": {
+					MType: models.Gauge,
+					Value: toPtr(0.85),
+				}},
+				err: nil},
+			},
+			metricName: "memory",
+			exist:      false,
+			want:       "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			service := &metricsService{
+				strg: tt.fields.s,
+			}
+
+			metric, ok := service.GetMetric(tt.metricName)
+
+			assert.Equal(t, tt.exist, ok)
+			assert.Equal(t, tt.want, metric)
+		})
+	}
+}
+
+func TestMetricsService_GetAllMetrics(t *testing.T) {
+	type fields struct {
+		s storage.Storage
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   map[string]string
+	}{
+		{
+			name: "get all values",
+			fields: fields{s: &SMockStorage{
+				storage: map[string]*models.Metrics{"requests": {
+					MType: models.Counter,
+					Delta: toPtr(int64(100)),
+				},
+					"cpu": {
+						MType: models.Gauge,
+						Value: toPtr(0.85),
+					}},
+				err: nil},
+			},
+
+			want: map[string]string{"requests": "100", "cpu": "0.85"},
+		},
+		{
+			name: "empty map",
+			fields: fields{s: &SMockStorage{
+				storage: map[string]*models.Metrics{},
+				err:     nil},
+			},
+
+			want: map[string]string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			service := &metricsService{
+				strg: tt.fields.s,
+			}
+
+			assert.Equal(t, tt.want, service.GetAllMetrics())
 		})
 	}
 }

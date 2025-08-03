@@ -4,6 +4,7 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/handler"
 	"github.com/ValentinaKh/go-metrics/internal/handler/middleware"
 	"github.com/ValentinaKh/go-metrics/internal/service"
+	"github.com/go-chi/chi/v5"
 	"net/http"
 )
 
@@ -14,8 +15,14 @@ func main() {
 }
 
 func run() error {
-	mux := http.NewServeMux()
+	r := chi.NewRouter()
 
-	mux.Handle("/", middleware.ValidationPostMw(middleware.ValidationURLRqMw(handler.MetricsHandler(service.NewMetricsService()))))
-	return http.ListenAndServe(`:8080`, mux)
+	metricsService := service.NewMetricsService()
+
+	r.Get("/", handler.GetAllMetricsHandler(metricsService))
+	r.With(middleware.ValidationURLRqMw).Post("/update/{type}/{name}/{value}", handler.MetricsHandler(metricsService))
+	r.Get("/value/{type}/{name}", handler.GetMetricHandler(metricsService))
+
+	return http.ListenAndServe(`:8080`, r)
+
 }

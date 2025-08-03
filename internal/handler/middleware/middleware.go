@@ -6,6 +6,7 @@ import (
 	"net/http"
 )
 
+// ValidationPostMw deprecated
 func ValidationPostMw(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -20,11 +21,6 @@ func ValidationPostMw(next http.Handler) http.Handler {
 
 func ValidationURLRqMw(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		contentType := r.Header.Get("Content-Type")
-		if contentType != "text/plain" {
-			http.Error(w, "Ожидался Content-Type: text/plain", http.StatusBadRequest)
-			return
-		}
 		matches := utils.ParseURL(r.URL.Path)
 
 		if len(matches) != 4 {

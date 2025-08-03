@@ -24,6 +24,10 @@ func (ms *MockStorage) GetAndClear() map[string]*models.Metrics {
 	return ms.storage
 }
 
+func (ms *MockStorage) GetAllMetrics() map[string]*models.Metrics {
+	return nil
+}
+
 func Test_metricCollector_addMetric(t *testing.T) {
 	type fields struct {
 		s            storage.Storage
