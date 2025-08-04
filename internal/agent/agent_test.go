@@ -98,6 +98,7 @@ func Test_metricAgent_send(t *testing.T) {
 				s:              tt.fields.s,
 				h:              tt.fields.h,
 				reportInterval: tt.fields.reportInterval,
+				host:           "localhost:8080",
 			}
 			err := s.send()
 

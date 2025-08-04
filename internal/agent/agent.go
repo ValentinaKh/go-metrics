@@ -17,10 +17,11 @@ type MetricAgent struct {
 	s              service.Storage
 	h              Sender
 	reportInterval time.Duration
+	host           string
 }
 
-func NewMetricAgent(s service.Storage, h Sender, reportInterval time.Duration) *MetricAgent {
-	return &MetricAgent{s, h, reportInterval}
+func NewMetricAgent(s service.Storage, h Sender, reportInterval time.Duration, host string) *MetricAgent {
+	return &MetricAgent{s, h, reportInterval, host}
 }
 
 func (s *MetricAgent) Push(ctx context.Context) {
@@ -45,9 +46,9 @@ func (s *MetricAgent) send() error {
 		var url string
 		switch metric.MType {
 		case models.Gauge:
-			url = "http://localhost:8080/update/" + metric.MType + "/" + key + "/" + strconv.FormatFloat(*metric.Value, 'f', -1, 64)
+			url = "http://" + s.host + "/update/" + metric.MType + "/" + key + "/" + strconv.FormatFloat(*metric.Value, 'f', -1, 64)
 		case models.Counter:
-			url = "http://localhost:8080/update/" + metric.MType + "/" + key + "/" + strconv.FormatInt(*metric.Delta, 10)
+			url = "http://" + s.host + "/update/" + metric.MType + "/" + key + "/" + strconv.FormatInt(*metric.Delta, 10)
 		}
 		if err := s.h.Send(url); err != nil {
 			return err

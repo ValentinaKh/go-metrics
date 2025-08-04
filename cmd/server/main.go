@@ -16,6 +16,9 @@ func main() {
 }
 
 func run() error {
+
+	host := parseFlags()
+
 	r := chi.NewRouter()
 
 	metricsService := service.NewMetricsService(storage.NewMemStorage())
@@ -24,6 +27,6 @@ func run() error {
 	r.With(middleware.ValidationURLRqMw).Post("/update/{type}/{name}/{value}", handler.MetricsHandler(metricsService))
 	r.Get("/value/{type}/{name}", handler.GetMetricHandler(metricsService))
 
-	return http.ListenAndServe(`:8080`, r)
+	return http.ListenAndServe(*host, r)
 
 }

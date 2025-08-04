@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 func main() {
@@ -18,14 +17,16 @@ func main() {
 
 func run() {
 
+	host, reportInterval, pollInterval := parseFlags()
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	shutdownCtx, cancel := context.WithCancel(context.Background())
 
 	st := storage.NewMemStorage()
-	metricAgent := agent.NewMetricAgent(st, agent.NewPostSender(), 10*time.Second)
-	collector := service.NewMetricCollector(st, 2*time.Second)
+	metricAgent := agent.NewMetricAgent(st, agent.NewPostSender(), reportInterval, host)
+	collector := service.NewMetricCollector(st, pollInterval)
 
 	go collector.Collect(shutdownCtx)
 	go metricAgent.Push(shutdownCtx)
