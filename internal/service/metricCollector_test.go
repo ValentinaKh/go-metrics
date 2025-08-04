@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"github.com/ValentinaKh/go-metrics/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"runtime"
 	"testing"
@@ -30,7 +29,7 @@ func (ms *MockStorage) GetAllMetrics() map[string]*models.Metrics {
 
 func Test_metricCollector_addMetric(t *testing.T) {
 	type fields struct {
-		s            storage.Storage
+		s            Storage
 		pollInterval time.Duration
 	}
 	type args struct {
@@ -93,7 +92,7 @@ func Test_metricCollector_collectMetric(t *testing.T) {
 	defer func() { collectors = originalCollectors }()
 
 	type fields struct {
-		s             storage.Storage
+		s             Storage
 		pollInterval  time.Duration
 		tmpCollectors []func(*metricCollector, *runtime.MemStats) error
 	}

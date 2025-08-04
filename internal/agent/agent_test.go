@@ -3,7 +3,7 @@ package agent
 import (
 	"fmt"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"github.com/ValentinaKh/go-metrics/internal/storage"
+	"github.com/ValentinaKh/go-metrics/internal/service"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -40,7 +40,7 @@ func (s *MockStorage) GetAllMetrics() map[string]*models.Metrics {
 
 func Test_metricAgent_send(t *testing.T) {
 	type fields struct {
-		s              storage.Storage
+		s              service.Storage
 		h              Sender
 		reportInterval time.Duration
 	}
@@ -94,7 +94,7 @@ func Test_metricAgent_send(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &metricAgent{
+			s := &MetricAgent{
 				s:              tt.fields.s,
 				h:              tt.fields.h,
 				reportInterval: tt.fields.reportInterval,

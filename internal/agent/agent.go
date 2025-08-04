@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"github.com/ValentinaKh/go-metrics/internal/storage"
+	"github.com/ValentinaKh/go-metrics/internal/service"
 	"strconv"
 	"time"
 )
@@ -13,17 +13,17 @@ type Agent interface {
 	Push(ctx context.Context)
 }
 
-type metricAgent struct {
-	s              storage.Storage
+type MetricAgent struct {
+	s              service.Storage
 	h              Sender
 	reportInterval time.Duration
 }
 
-func NewMetricAgent(s storage.Storage, h Sender, reportInterval time.Duration) Agent {
-	return &metricAgent{s, h, reportInterval}
+func NewMetricAgent(s service.Storage, h Sender, reportInterval time.Duration) *MetricAgent {
+	return &MetricAgent{s, h, reportInterval}
 }
 
-func (s *metricAgent) Push(ctx context.Context) {
+func (s *MetricAgent) Push(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -39,7 +39,7 @@ func (s *metricAgent) Push(ctx context.Context) {
 	}
 }
 
-func (s *metricAgent) send() error {
+func (s *MetricAgent) send() error {
 	metrics := s.s.GetAndClear()
 	for key, metric := range metrics {
 		var url string

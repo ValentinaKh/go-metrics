@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"github.com/ValentinaKh/go-metrics/internal/storage"
 	"math/rand"
 	"runtime"
 	"time"
@@ -134,11 +133,11 @@ type Collector interface {
 }
 
 type metricCollector struct {
-	s            storage.Storage
+	s            Storage
 	pollInterval time.Duration
 }
 
-func NewMetricCollector(s storage.Storage, pollInterval time.Duration) Collector {
+func NewMetricCollector(s Storage, pollInterval time.Duration) Collector {
 	return &metricCollector{
 		s:            s,
 		pollInterval: pollInterval,

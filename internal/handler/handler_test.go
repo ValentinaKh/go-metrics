@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"github.com/ValentinaKh/go-metrics/internal/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +34,7 @@ func (m *MockMetricsService) GetAllMetrics() map[string]string {
 
 func TestMetricsHandler(t *testing.T) {
 	type args struct {
-		service service.Service
+		service Service
 	}
 	type want struct {
 		code     int
@@ -97,7 +96,7 @@ func TestMetricsHandler(t *testing.T) {
 
 func Test_GetMetricHandler(t *testing.T) {
 	type args struct {
-		service service.Service
+		service Service
 	}
 	type want struct {
 		code     int
@@ -160,7 +159,7 @@ func Test_GetMetricHandler(t *testing.T) {
 
 func Test_GetAllMetricsHandler(t *testing.T) {
 	type args struct {
-		service service.Service
+		service Service
 	}
 	type want struct {
 		code     int

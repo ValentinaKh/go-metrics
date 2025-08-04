@@ -13,7 +13,7 @@ type HTTPSender struct {
 	client *resty.Client
 }
 
-func NewPostSender() Sender {
+func NewPostSender() *HTTPSender {
 	return &HTTPSender{client: resty.New()}
 }
 

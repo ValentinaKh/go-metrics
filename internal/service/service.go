@@ -2,25 +2,26 @@ package service
 
 import (
 	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"github.com/ValentinaKh/go-metrics/internal/storage"
 	"strconv"
 )
 
-type Service interface {
-	Handle(metricType, name, value string) error
-	GetMetric(name string) (string, bool)
-	GetAllMetrics() map[string]string
+type Storage interface {
+	// UpdateMetric обновляем метрику в хранилище
+	UpdateMetric(key string, value models.Metrics) error
+	// GetAndClear овозвращаем то, что находится в хранилище и очищаем хранилище
+	GetAndClear() map[string]*models.Metrics
+	GetAllMetrics() map[string]*models.Metrics
 }
 
-type metricsService struct {
-	strg storage.Storage
+type MetricsService struct {
+	strg Storage
 }
 
-func NewMetricsService() Service {
-	return &metricsService{strg: storage.NewMemStorage()}
+func NewMetricsService(storage Storage) *MetricsService {
+	return &MetricsService{strg: storage}
 }
 
-func (s metricsService) Handle(metricType, name, value string) error {
+func (s MetricsService) Handle(metricType, name, value string) error {
 	var metric models.Metrics
 	switch metricType {
 	case models.Counter:
@@ -45,7 +46,7 @@ func (s metricsService) Handle(metricType, name, value string) error {
 	return s.strg.UpdateMetric(name, metric)
 }
 
-func (s metricsService) GetMetric(name string) (string, bool) {
+func (s MetricsService) GetMetric(name string) (string, bool) {
 	metrics := s.strg.GetAllMetrics()
 	metric, ok := metrics[name]
 	if !ok {
@@ -60,7 +61,7 @@ func (s metricsService) GetMetric(name string) (string, bool) {
 	return "", false
 }
 
-func (s metricsService) GetAllMetrics() map[string]string {
+func (s MetricsService) GetAllMetrics() map[string]string {
 	result := make(map[string]string)
 	for name, metric := range s.strg.GetAllMetrics() {
 		var value string

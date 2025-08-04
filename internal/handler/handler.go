@@ -2,12 +2,17 @@ package handler
 
 import (
 	"fmt"
-	"github.com/ValentinaKh/go-metrics/internal/service"
 	"github.com/go-chi/chi/v5"
 	"net/http"
 )
 
-func MetricsHandler(service service.Service) http.HandlerFunc {
+type Service interface {
+	Handle(metricType, name, value string) error
+	GetMetric(name string) (string, bool)
+	GetAllMetrics() map[string]string
+}
+
+func MetricsHandler(service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		err := service.Handle(chi.URLParam(r, "type"), chi.URLParam(r, "name"), chi.URLParam(r, "value"))
@@ -19,7 +24,7 @@ func MetricsHandler(service service.Service) http.HandlerFunc {
 	}
 }
 
-func GetMetricHandler(service service.Service) http.HandlerFunc {
+func GetMetricHandler(service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
 		value, ok := service.GetMetric(name)
@@ -34,7 +39,7 @@ func GetMetricHandler(service service.Service) http.HandlerFunc {
 	}
 }
 
-func GetAllMetricsHandler(service service.Service) http.HandlerFunc {
+func GetAllMetricsHandler(service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		values := service.GetAllMetrics()
 		w.WriteHeader(http.StatusOK)

@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"github.com/ValentinaKh/go-metrics/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -26,7 +25,7 @@ func (ms *SMockStorage) GetAllMetrics() map[string]*models.Metrics {
 
 func TestMetricsService_Handle(t *testing.T) {
 	type fields struct {
-		s storage.Storage
+		s Storage
 	}
 	tests := []struct {
 		name    string
@@ -109,7 +108,7 @@ func TestMetricsService_Handle(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			service := &metricsService{
+			service := &MetricsService{
 				strg: tt.fields.s,
 			}
 
@@ -126,7 +125,7 @@ func TestMetricsService_Handle(t *testing.T) {
 
 func TestMetricsService_GetMetric(t *testing.T) {
 	type fields struct {
-		s storage.Storage
+		s Storage
 	}
 	tests := []struct {
 		name       string
@@ -192,7 +191,7 @@ func TestMetricsService_GetMetric(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			service := &metricsService{
+			service := &MetricsService{
 				strg: tt.fields.s,
 			}
 
@@ -206,7 +205,7 @@ func TestMetricsService_GetMetric(t *testing.T) {
 
 func TestMetricsService_GetAllMetrics(t *testing.T) {
 	type fields struct {
-		s storage.Storage
+		s Storage
 	}
 	tests := []struct {
 		name   string
@@ -243,7 +242,7 @@ func TestMetricsService_GetAllMetrics(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			service := &metricsService{
+			service := &MetricsService{
 				strg: tt.fields.s,
 			}
 

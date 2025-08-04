@@ -6,27 +6,19 @@ import (
 	"sync"
 )
 
-type Storage interface {
-	// UpdateMetric обновляем метрику в хранилище
-	UpdateMetric(key string, value models.Metrics) error
-	// GetAndClear овозвращаем то, что находится в хранилище и очищаем хранилище
-	GetAndClear() map[string]*models.Metrics
-	GetAllMetrics() map[string]*models.Metrics
-}
-
-type memStorage struct {
+type MemStorage struct {
 	mutex   sync.Mutex
 	storage map[string]*models.Metrics
 }
 
-func NewMemStorage() Storage {
-	return &memStorage{
+func NewMemStorage() *MemStorage {
+	return &MemStorage{
 		mutex:   sync.Mutex{},
 		storage: make(map[string]*models.Metrics),
 	}
 }
 
-func (s *memStorage) UpdateMetric(key string, value models.Metrics) error {
+func (s *MemStorage) UpdateMetric(key string, value models.Metrics) error {
 	metric, ok := s.storage[key]
 	if !ok {
 		s.mutex.Lock()
@@ -50,7 +42,7 @@ func (s *memStorage) UpdateMetric(key string, value models.Metrics) error {
 	return nil
 }
 
-func (s *memStorage) GetAndClear() map[string]*models.Metrics {
+func (s *MemStorage) GetAndClear() map[string]*models.Metrics {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	copyMap := make(map[string]*models.Metrics)
@@ -61,7 +53,7 @@ func (s *memStorage) GetAndClear() map[string]*models.Metrics {
 	return copyMap
 }
 
-func (s *memStorage) GetAllMetrics() map[string]*models.Metrics {
+func (s *MemStorage) GetAllMetrics() map[string]*models.Metrics {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	copyMap := make(map[string]*models.Metrics)
