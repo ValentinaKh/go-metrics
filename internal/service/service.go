@@ -22,12 +22,20 @@ func NewMetricsService(storage Storage) *MetricsService {
 }
 
 func (s MetricsService) Handle(metricType, name, value string) error {
+	metric, err := s.parse(metricType, value)
+	if err != nil {
+		return err
+	}
+	return s.strg.UpdateMetric(name, *metric)
+}
+
+func (s MetricsService) parse(metricType string, value string) (*models.Metrics, error) {
 	var metric models.Metrics
 	switch metricType {
 	case models.Counter:
 		value, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		metric = models.Metrics{
 			MType: models.Counter,
@@ -36,14 +44,14 @@ func (s MetricsService) Handle(metricType, name, value string) error {
 	case models.Gauge:
 		value, err := strconv.ParseFloat(value, 64)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		metric = models.Metrics{
 			MType: models.Gauge,
 			Value: &value,
 		}
 	}
-	return s.strg.UpdateMetric(name, metric)
+	return &metric, nil
 }
 
 func (s MetricsService) GetMetric(name string) (string, bool) {

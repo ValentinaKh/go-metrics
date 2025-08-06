@@ -19,18 +19,16 @@ func NewMemStorage() *MemStorage {
 }
 
 func (s *MemStorage) UpdateMetric(key string, value models.Metrics) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
 	metric, ok := s.storage[key]
 	if !ok {
-		s.mutex.Lock()
-		defer s.mutex.Unlock()
 		s.storage[key] = &value
 	} else {
 		if metric.MType != value.MType {
 			return fmt.Errorf("incorrect type")
 		}
-
-		s.mutex.Lock()
-		defer s.mutex.Unlock()
 
 		switch value.MType {
 		case models.Counter:

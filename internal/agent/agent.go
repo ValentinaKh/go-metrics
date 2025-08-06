@@ -5,6 +5,8 @@ import (
 	"fmt"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/ValentinaKh/go-metrics/internal/service"
+	"log/slog"
+	"net/url"
 	"strconv"
 	"time"
 )
@@ -28,12 +30,12 @@ func (s *MetricAgent) Push(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("close agent")
+			slog.Info("close agent")
 			return
 		default:
 			err := s.send()
 			if err != nil {
-				fmt.Println(err.Error())
+				slog.Error(err.Error())
 			}
 			time.Sleep(s.reportInterval)
 		}
@@ -43,16 +45,25 @@ func (s *MetricAgent) Push(ctx context.Context) {
 func (s *MetricAgent) send() error {
 	metrics := s.s.GetAndClear()
 	for key, metric := range metrics {
-		var url string
+		var serverUrl string
 		switch metric.MType {
 		case models.Gauge:
-			url = "http://" + s.host + "/update/" + metric.MType + "/" + key + "/" + strconv.FormatFloat(*metric.Value, 'f', -1, 64)
+			serverUrl = s.buildURL(metric.MType, key, strconv.FormatFloat(*metric.Value, 'f', -1, 64))
 		case models.Counter:
-			url = "http://" + s.host + "/update/" + metric.MType + "/" + key + "/" + strconv.FormatInt(*metric.Delta, 10)
+			serverUrl = s.buildURL(metric.MType, key, strconv.FormatInt(*metric.Delta, 10))
 		}
-		if err := s.h.Send(url); err != nil {
+		if err := s.h.Send(serverUrl); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (s *MetricAgent) buildURL(metricType, key, value string) string {
+	u := &url.URL{
+		Scheme: "http",
+		Host:   s.host,
+		Path:   fmt.Sprintf("/update/%s/%s/%s", metricType, key, value),
+	}
+	return u.String()
 }

@@ -1,8 +1,8 @@
 package agent
 
 import (
-	"fmt"
 	"github.com/go-resty/resty/v2"
+	"log/slog"
 )
 
 type Sender interface {
@@ -26,7 +26,7 @@ func (s *HTTPSender) Send(url string) error {
 	}
 
 	if resp.StatusCode() != 200 {
-		fmt.Printf("Status Code: %d\r\n", resp.StatusCode())
+		slog.Info("Status Code:", slog.Int("code", resp.StatusCode()))
 	}
 
 	return nil

@@ -32,9 +32,9 @@ func GetMetricHandler(service Service) http.HandlerFunc {
 			http.Error(w, "Метрика не найдена", http.StatusNotFound)
 			return
 		}
-		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Header().Set(name, value)
+		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(value))
 	}
 }

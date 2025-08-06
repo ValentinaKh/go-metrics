@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/ValentinaKh/go-metrics/internal/agent"
+	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"github.com/ValentinaKh/go-metrics/internal/service"
 	"github.com/ValentinaKh/go-metrics/internal/storage"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,6 +17,7 @@ func main() {
 }
 
 func run() {
+	logger.Setup("info")
 
 	host, reportInterval, pollInterval := parseFlags()
 
@@ -33,5 +35,5 @@ func run() {
 
 	<-ctx.Done()
 	cancel()
-	fmt.Println("Приложение завершено.")
+	slog.Info("Приложение завершено.")
 }

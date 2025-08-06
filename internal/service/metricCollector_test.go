@@ -94,7 +94,7 @@ func Test_metricCollector_collectMetric(t *testing.T) {
 	type fields struct {
 		s             Storage
 		pollInterval  time.Duration
-		tmpCollectors []func(*metricCollector, *runtime.MemStats) error
+		tmpCollectors []metricGetter
 	}
 	tests := []struct {
 		name    string
@@ -111,13 +111,11 @@ func Test_metricCollector_collectMetric(t *testing.T) {
 						return nil
 					}},
 				pollInterval: 2,
-				tmpCollectors: []func(*metricCollector, *runtime.MemStats) error{
-					func(c *metricCollector, m *runtime.MemStats) error { return nil },
-					func(c *metricCollector, m *runtime.MemStats) error { return nil },
-					func(c *metricCollector, m *runtime.MemStats) error { return nil },
+				tmpCollectors: []metricGetter{
+					{alloc, func(ms *runtime.MemStats) float64 { return 0 }},
 				},
 			},
-			calls:   3,
+			calls:   1,
 			wantErr: false,
 		},
 		{
@@ -126,13 +124,11 @@ func Test_metricCollector_collectMetric(t *testing.T) {
 				s: &MockStorage{
 					storage: map[string]*models.Metrics{},
 					UpdateMetricFunc: func(name string, m models.Metrics) error {
-						return nil
+						return fmt.Errorf("test error")
 					}},
 				pollInterval: 2,
-				tmpCollectors: []func(*metricCollector, *runtime.MemStats) error{
-					func(c *metricCollector, m *runtime.MemStats) error { return nil },
-					func(c *metricCollector, m *runtime.MemStats) error { return fmt.Errorf("test error") },
-					func(c *metricCollector, m *runtime.MemStats) error { return nil },
+				tmpCollectors: []metricGetter{
+					{alloc, func(ms *runtime.MemStats) float64 { return 0 }},
 				},
 			},
 			calls:   0,
@@ -147,9 +143,8 @@ func Test_metricCollector_collectMetric(t *testing.T) {
 						return fmt.Errorf("add error")
 					}},
 				pollInterval: 2,
-				tmpCollectors: []func(*metricCollector, *runtime.MemStats) error{
-					func(c *metricCollector, m *runtime.MemStats) error { return nil },
-					func(c *metricCollector, m *runtime.MemStats) error { return nil },
+				tmpCollectors: []metricGetter{
+					{alloc, func(ms *runtime.MemStats) float64 { return 0 }},
 				},
 			},
 			calls:   0,

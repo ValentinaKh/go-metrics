@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/ValentinaKh/go-metrics/internal/handler"
 	"github.com/ValentinaKh/go-metrics/internal/handler/middleware"
+	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"github.com/ValentinaKh/go-metrics/internal/service"
 	"github.com/ValentinaKh/go-metrics/internal/storage"
 	"github.com/go-chi/chi/v5"
@@ -16,6 +17,7 @@ func main() {
 }
 
 func run() error {
+	logger.Setup("info")
 
 	host := parseFlags()
 
