@@ -1,8 +1,9 @@
 package agent
 
 import (
+	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"github.com/go-resty/resty/v2"
-	"log/slog"
+	"go.uber.org/zap"
 )
 
 type Sender interface {
@@ -26,7 +27,7 @@ func (s *HTTPSender) Send(url string) error {
 	}
 
 	if resp.StatusCode() != 200 {
-		slog.Info("Status Code:", slog.Int("code", resp.StatusCode()))
+		logger.Log.Info("Status Code:", zap.Int("code", resp.StatusCode()))
 	}
 
 	return nil

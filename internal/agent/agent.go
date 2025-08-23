@@ -3,9 +3,9 @@ package agent
 import (
 	"context"
 	"fmt"
+	"github.com/ValentinaKh/go-metrics/internal/logger"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/ValentinaKh/go-metrics/internal/service"
-	"log/slog"
 	"net/url"
 	"strconv"
 	"time"
@@ -30,12 +30,12 @@ func (s *MetricAgent) Push(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Info("close agent")
+			logger.Log.Info("close agent")
 			return
 		default:
 			err := s.send()
 			if err != nil {
-				slog.Error(err.Error())
+				logger.Log.Error(err.Error())
 			}
 			time.Sleep(s.reportInterval)
 		}

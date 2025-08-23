@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/ValentinaKh/go-metrics/internal/logger"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"log/slog"
 	"math/rand"
 	"runtime"
 	"time"
@@ -98,13 +98,13 @@ func (c *metricCollector) Collect(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Info("close Collector")
+			logger.Log.Info("close Collector")
 			return
 		default:
 			err := c.collectMetric()
 
 			if err != nil {
-				slog.Error(err.Error())
+				logger.Log.Error(err.Error())
 			}
 
 			time.Sleep(c.pollInterval)

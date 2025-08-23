@@ -17,7 +17,11 @@ func main() {
 }
 
 func run() error {
-	logger.Setup("info")
+	err := logger.InitializeZapLogger("info")
+	if err != nil {
+		panic(err)
+	}
+	defer logger.Log.Sync()
 
 	host := parseArgs()
 
@@ -25,9 +29,9 @@ func run() error {
 
 	metricsService := service.NewMetricsService(storage.NewMemStorage())
 
-	r.Get("/", handler.GetAllMetricsHandler(metricsService))
-	r.With(middleware.ValidationURLRqMw).Post("/update/{type}/{name}/{value}", handler.MetricsHandler(metricsService))
-	r.Get("/value/{type}/{name}", handler.GetMetricHandler(metricsService))
+	r.With(middleware.LoggingMw).Get("/", handler.GetAllMetricsHandler(metricsService))
+	r.With(middleware.LoggingMw, middleware.ValidationURLRqMw).Post("/update/{type}/{name}/{value}", handler.MetricsHandler(metricsService))
+	r.With(middleware.LoggingMw).Get("/value/{type}/{name}", handler.GetMetricHandler(metricsService))
 
 	return http.ListenAndServe(host, r)
 

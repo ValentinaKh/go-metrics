@@ -6,7 +6,6 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"github.com/ValentinaKh/go-metrics/internal/service"
 	"github.com/ValentinaKh/go-metrics/internal/storage"
-	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,7 +16,11 @@ func main() {
 }
 
 func run() {
-	logger.Setup("info")
+	err := logger.InitializeZapLogger("info")
+	if err != nil {
+		panic(err)
+	}
+	defer logger.Log.Sync()
 
 	host, reportInterval, pollInterval := mustParseArgs()
 
@@ -35,5 +38,5 @@ func run() {
 
 	<-ctx.Done()
 	cancel()
-	slog.Info("Приложение завершено.")
+	logger.Log.Info("Приложение завершено.")
 }
