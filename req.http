@@ -1,0 +1,14 @@
+POST http://localhost:8080/update/counter/testSetGet164/102
+Content-Type: text/plain
+
+###
+POST http://localhost:8080/update/gauge/
+Content-Type: text/plain
+
+###
+GET http://localhost:8080/value/counter/someMetric1
+Content-Type: text/plain
+
+###
+GET http://localhost:8080/
+Content-Type: text/plain
