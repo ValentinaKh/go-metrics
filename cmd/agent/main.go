@@ -19,7 +19,7 @@ func main() {
 func run() {
 	logger.Setup("info")
 
-	host, reportInterval, pollInterval := parseFlags()
+	host, reportInterval, pollInterval := mustParseArgs()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
