@@ -32,7 +32,7 @@ func run() {
 	shutdownCtx, cancel := context.WithCancel(context.Background())
 
 	st := storage.NewMemStorage()
-	metricAgent := agent.NewMetricAgent(st, agent.NewPostSender(), reportInterval, host)
+	metricAgent := agent.NewMetricAgent(st, agent.NewPostSender(host), reportInterval)
 	collector := service.NewMetricCollector(st, pollInterval)
 
 	go collector.Collect(shutdownCtx)

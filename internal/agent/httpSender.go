@@ -4,24 +4,27 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"github.com/go-resty/resty/v2"
 	"go.uber.org/zap"
+	"net/url"
 )
 
 type Sender interface {
-	Send(url string) error
+	Send(data []byte) error
 }
 
 type HTTPSender struct {
 	client *resty.Client
+	url    string
 }
 
-func NewPostSender() *HTTPSender {
-	return &HTTPSender{client: resty.New()}
+func NewPostSender(host string) *HTTPSender {
+	return &HTTPSender{client: resty.New(), url: buildURL(host)}
 }
 
-func (s *HTTPSender) Send(url string) error {
+func (s *HTTPSender) Send(data []byte) error {
 	resp, err := s.client.R().
-		SetHeader("Content-Type", "text/plain").
-		Post(url)
+		SetHeader("Content-Type", "application/json").
+		SetBody(data).
+		Post(s.url)
 	if err != nil {
 		return err
 	}
@@ -31,4 +34,13 @@ func (s *HTTPSender) Send(url string) error {
 	}
 
 	return nil
+}
+
+func buildURL(host string) string {
+	u := &url.URL{
+		Scheme: "http",
+		Host:   host,
+		Path:   "/update/",
+	}
+	return u.String()
 }
