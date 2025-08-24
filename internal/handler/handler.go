@@ -110,13 +110,13 @@ func GetJSONMetricHandler(service Service) http.HandlerFunc {
 func GetAllMetricsHandler(service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		values := service.GetAllMetrics()
+		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Write([]byte(`<!DOCTYPE html>
-<html><head><title>Metrics</title></head><body>
-<h1>Metrics</h1>
-<ul>`))
 
+		w.Write([]byte(`<!DOCTYPE html>
+						<html><head><title>Metrics</title></head><body>
+						<h1>Metrics</h1>
+						<ul>`))
 		for name, m := range values {
 			fmt.Fprintf(w, `<li><strong>%s</strong> %s</li>`, name, m)
 		}

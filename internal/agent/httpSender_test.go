@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"bytes"
+	"compress/gzip"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,12 +22,19 @@ func TestHTTPSender_Send_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "POST", r.Method)
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-		body, err := io.ReadAll(r.Body)
+		assert.Equal(t, "gzip", r.Header.Get("Content-Encoding"))
+		compressedBody, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
-
 		defer r.Body.Close()
 
-		assert.JSONEq(t, expected, string(body))
+		gz, err := gzip.NewReader(bytes.NewReader(compressedBody))
+		require.NoError(t, err)
+		defer gz.Close()
+
+		uncompressedBody, err := io.ReadAll(gz)
+		require.NoError(t, err)
+
+		assert.JSONEq(t, expected, string(uncompressedBody))
 
 		w.WriteHeader(http.StatusOK)
 	}))

@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"bytes"
+	"compress/gzip"
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"github.com/go-resty/resty/v2"
 	"go.uber.org/zap"
@@ -21,9 +23,21 @@ func NewPostSender(host string) *HTTPSender {
 }
 
 func (s *HTTPSender) Send(data []byte) error {
+
+	var compressedBody bytes.Buffer
+	gz := gzip.NewWriter(&compressedBody)
+	_, err := gz.Write(data)
+	if err != nil {
+		return err
+	}
+	err = gz.Close()
+	if err != nil {
+		return err
+	}
+
 	resp, err := s.client.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(data).
+		SetHeaders(map[string]string{"Content-Type": "application/json", "Content-Encoding": "gzip"}).
+		SetBody(compressedBody.Bytes()).
 		Post(s.url)
 	if err != nil {
 		return err

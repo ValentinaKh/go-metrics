@@ -29,7 +29,7 @@ func run() error {
 
 	metricsService := service.NewMetricsService(storage.NewMemStorage())
 
-	r.With(middleware.LoggingMw).Route("/", func(r chi.Router) {
+	r.With(middleware.LoggingMw, middleware.GzipMW).Route("/", func(r chi.Router) {
 		r.Get("/", handler.GetAllMetricsHandler(metricsService))
 		r.With(middleware.ValidationURLRqMw).Post("/update/{type}/{name}/{value}", handler.MetricsHandler(metricsService))
 		r.Post("/update/", handler.JSONUpdateMetricsHandler(metricsService))

@@ -6,6 +6,7 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/utils"
 	"go.uber.org/zap"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -89,5 +90,31 @@ func LoggingMw(next http.Handler) http.Handler {
 		}()
 
 		next.ServeHTTP(&lw, r)
+	})
+}
+
+func GzipMW(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		// Проверяем в каком виде клиент прислал данные
+		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+			cr, err := newCompressReader(r.Body)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			r.Body = cr
+			defer cr.Close()
+		}
+
+		ow := w
+		// Проверяем, что клиент может принять сжатые данные. Если заголовок есть, сжимаем данные
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			cw := newCompressWriter(w)
+			ow = cw
+			defer cw.Close()
+		}
+
+		next.ServeHTTP(ow, r)
 	})
 }
