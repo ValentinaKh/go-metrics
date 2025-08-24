@@ -4,6 +4,7 @@ import (
 	"fmt"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/stretchr/testify/assert"
+	"strconv"
 	"testing"
 )
 
@@ -12,8 +13,8 @@ type SMockStorage struct {
 	err     error
 }
 
-func (ms *SMockStorage) UpdateMetric(name string, m models.Metrics) error {
-	ms.storage[name] = &m
+func (ms *SMockStorage) UpdateMetric(m models.Metrics) error {
+	ms.storage[m.ID] = &m
 	return ms.err
 }
 func (ms *SMockStorage) GetAndClear() map[string]*models.Metrics {
@@ -23,7 +24,7 @@ func (ms *SMockStorage) GetAllMetrics() map[string]*models.Metrics {
 	return ms.storage
 }
 
-func TestMetricsService_Handle(t *testing.T) {
+func TestMetricsService_UpdateMetric(t *testing.T) {
 	type fields struct {
 		s Storage
 	}
@@ -43,6 +44,7 @@ func TestMetricsService_Handle(t *testing.T) {
 			},
 			wantErr: false,
 			want: map[string]*models.Metrics{"requests": {
+				ID:    "requests",
 				MType: models.Counter,
 				Delta: toPtr(int64(100)),
 			}},
@@ -56,6 +58,7 @@ func TestMetricsService_Handle(t *testing.T) {
 			},
 			wantErr: false,
 			want: map[string]*models.Metrics{"cpu": {
+				ID:    "cpu",
 				MType: models.Gauge,
 				Value: toPtr(0.85),
 			}},
@@ -69,29 +72,10 @@ func TestMetricsService_Handle(t *testing.T) {
 			},
 			wantErr: false,
 			want: map[string]*models.Metrics{"errors": {
+				ID:    "errors",
 				MType: models.Counter,
 				Delta: toPtr(int64(-50)),
 			}},
-		},
-		{
-			name:  "invalid counter value",
-			parts: []string{"counter", "requests", "abc"},
-			fields: fields{s: &SMockStorage{
-				storage: map[string]*models.Metrics{},
-				err:     nil},
-			},
-			wantErr: true,
-			want:    map[string]*models.Metrics{},
-		},
-		{
-			name:  "invalid gauge value",
-			parts: []string{"gauge", "cpu", "invalid"},
-			fields: fields{s: &SMockStorage{
-				storage: map[string]*models.Metrics{},
-				err:     nil},
-			},
-			wantErr: true,
-			want:    map[string]*models.Metrics{},
 		},
 		{
 			name:  "storage returns error",
@@ -112,7 +96,12 @@ func TestMetricsService_Handle(t *testing.T) {
 				strg: tt.fields.s,
 			}
 
-			err := service.Handle(tt.parts[0], tt.parts[1], tt.parts[2])
+			metrics, err2 := parse(tt.parts[0], tt.parts[1], tt.parts[2])
+			if err2 != nil {
+				t.Error(err2)
+				return
+			}
+			err := service.UpdateMetric(*metrics)
 
 			assert.Equal(t, tt.wantErr, err != nil)
 
@@ -131,47 +120,62 @@ func TestMetricsService_GetMetric(t *testing.T) {
 		name       string
 		fields     fields
 		metricName string
+		metricType string
 		exist      bool
-		want       string
+		want       *models.Metrics
 	}{
 		{
 			name: "counter metric exists",
 			fields: fields{s: &SMockStorage{
 				storage: map[string]*models.Metrics{"requests": {
+					ID:    "requests",
 					MType: models.Counter,
 					Delta: toPtr(int64(100)),
 				}},
 				err: nil},
 			},
 			metricName: "requests",
+			metricType: models.Counter,
 			exist:      true,
-			want:       "100",
+			want: &models.Metrics{
+				ID:    "requests",
+				MType: models.Counter,
+				Delta: toPtr(int64(100)),
+			},
 		},
 		{
 			name: "gauge metric exists",
 			fields: fields{s: &SMockStorage{
 				storage: map[string]*models.Metrics{"cpu": {
+					ID:    "cpu",
 					MType: models.Gauge,
 					Value: toPtr(0.85),
 				}},
 				err: nil},
 			},
 			metricName: "cpu",
+			metricType: models.Gauge,
 			exist:      true,
-			want:       "0.85",
+			want: &models.Metrics{
+				ID:    "cpu",
+				MType: models.Gauge,
+				Value: toPtr(0.85),
+			},
 		},
 		{
 			name: "unknown type",
 			fields: fields{s: &SMockStorage{
 				storage: map[string]*models.Metrics{"cpu": {
-					MType: "unknown",
+					ID:    "cpu",
+					MType: "counter",
 					Value: toPtr(0.85),
 				}},
 				err: nil},
 			},
 			metricName: "cpu",
+			metricType: "unknown",
 			exist:      false,
-			want:       "",
+			want:       nil,
 		},
 		{
 			name: "unknown metric",
@@ -183,8 +187,9 @@ func TestMetricsService_GetMetric(t *testing.T) {
 				err: nil},
 			},
 			metricName: "memory",
+			metricType: models.Gauge,
 			exist:      false,
-			want:       "",
+			want:       nil,
 		},
 	}
 
@@ -195,9 +200,12 @@ func TestMetricsService_GetMetric(t *testing.T) {
 				strg: tt.fields.s,
 			}
 
-			metric, ok := service.GetMetric(tt.metricName)
+			metric, err := service.GetMetric(models.Metrics{
+				ID:    tt.metricName,
+				MType: tt.metricType,
+			})
 
-			assert.Equal(t, tt.exist, ok)
+			assert.Equal(t, tt.exist, err == nil)
 			assert.Equal(t, tt.want, metric)
 		})
 	}
@@ -253,4 +261,31 @@ func TestMetricsService_GetAllMetrics(t *testing.T) {
 
 func toPtr[T int64 | float64](value T) *T {
 	return &value
+}
+
+func parse(metricType, name, value string) (*models.Metrics, error) {
+	var metric models.Metrics
+	switch metricType {
+	case models.Counter:
+		value, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		metric = models.Metrics{
+			ID:    name,
+			MType: models.Counter,
+			Delta: &value,
+		}
+	case models.Gauge:
+		value, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return nil, err
+		}
+		metric = models.Metrics{
+			ID:    name,
+			MType: models.Gauge,
+			Value: &value,
+		}
+	}
+	return &metric, nil
 }

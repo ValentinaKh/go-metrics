@@ -22,6 +22,8 @@ func run() {
 	}
 	defer logger.Log.Sync()
 
+	logger.Log.Info("Приложение запущено.")
+
 	host, reportInterval, pollInterval := mustParseArgs()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

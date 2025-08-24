@@ -18,10 +18,11 @@ func NewMemStorage() *MemStorage {
 	}
 }
 
-func (s *MemStorage) UpdateMetric(key string, value models.Metrics) error {
+func (s *MemStorage) UpdateMetric(value models.Metrics) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
+	key := value.ID
 	metric, ok := s.storage[key]
 	if !ok {
 		s.storage[key] = &value

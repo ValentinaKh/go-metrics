@@ -26,7 +26,7 @@ type MockStorage struct {
 	storage map[string]*models.Metrics
 }
 
-func (s *MockStorage) UpdateMetric(_ string, _ models.Metrics) error {
+func (s *MockStorage) UpdateMetric(_ models.Metrics) error {
 	return nil
 }
 

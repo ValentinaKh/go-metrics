@@ -31,7 +31,9 @@ func run() error {
 
 	r.With(middleware.LoggingMw).Get("/", handler.GetAllMetricsHandler(metricsService))
 	r.With(middleware.LoggingMw, middleware.ValidationURLRqMw).Post("/update/{type}/{name}/{value}", handler.MetricsHandler(metricsService))
+	r.With(middleware.LoggingMw).Post("/update/", handler.JsonUpdateMetricsHandler(metricsService))
 	r.With(middleware.LoggingMw).Get("/value/{type}/{name}", handler.GetMetricHandler(metricsService))
+	r.With(middleware.LoggingMw).Post("/value/", handler.GetJsonMetricHandler(metricsService))
 
 	return http.ListenAndServe(host, r)
 

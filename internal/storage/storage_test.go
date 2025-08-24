@@ -221,7 +221,7 @@ func Test_memStorage_UpdateMetric(t *testing.T) {
 				mutex:   sync.Mutex{},
 				storage: tt.fields.storage,
 			}
-			err := s.UpdateMetric(tt.args.key, tt.args.value)
+			err := s.UpdateMetric(tt.args.value)
 			assert.Equal(t, tt.wantErr, err != nil)
 			assert.Equal(t, tt.want, s.storage)
 
