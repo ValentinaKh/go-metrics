@@ -114,9 +114,9 @@ func GetAllMetricsHandler(service Service) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 
 		w.Write([]byte(`<!DOCTYPE html>
-						<html><head><title>Metrics</title></head><body>
-						<h1>Metrics</h1>
-						<ul>`))
+<html><head><title>Metrics</title></head><body>
+<h1>Metrics</h1>
+<ul>`))
 		for name, m := range values {
 			fmt.Fprintf(w, `<li><strong>%s</strong> %s</li>`, name, m)
 		}
