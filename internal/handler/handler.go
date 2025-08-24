@@ -34,7 +34,7 @@ func MetricsHandler(service Service) http.HandlerFunc {
 	}
 }
 
-func JsonUpdateMetricsHandler(service Service) http.HandlerFunc {
+func JSONUpdateMetricsHandler(service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var request models.Metrics
 		dec := json.NewDecoder(r.Body)
@@ -78,7 +78,7 @@ func GetMetricHandler(service Service) http.HandlerFunc {
 	}
 }
 
-func GetJsonMetricHandler(service Service) http.HandlerFunc {
+func GetJSONMetricHandler(service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 

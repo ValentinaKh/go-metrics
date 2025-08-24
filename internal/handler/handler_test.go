@@ -312,7 +312,7 @@ func TestJsonUpdateMetricsHandler(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			handler := JsonUpdateMetricsHandler(test.args.service)
+			handler := JSONUpdateMetricsHandler(test.args.service)
 			request := httptest.NewRequest(http.MethodPost, "/update", bytes.NewBufferString(test.args.json))
 			w := httptest.NewRecorder()
 
@@ -322,6 +322,7 @@ func TestJsonUpdateMetricsHandler(t *testing.T) {
 			r.ServeHTTP(w, request)
 
 			res := w.Result()
+			defer res.Body.Close()
 
 			assert.Equal(t, test.want.code, res.StatusCode)
 		})
@@ -400,7 +401,7 @@ func Test_GetJsonMetricHandler(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			handler := GetJsonMetricHandler(test.args.service)
+			handler := GetJSONMetricHandler(test.args.service)
 			request := httptest.NewRequest(http.MethodPost, "/value", bytes.NewBufferString(test.args.json))
 			w := httptest.NewRecorder()
 
