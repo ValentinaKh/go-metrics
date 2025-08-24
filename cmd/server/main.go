@@ -29,11 +29,13 @@ func run() error {
 
 	metricsService := service.NewMetricsService(storage.NewMemStorage())
 
-	r.With(middleware.LoggingMw).Get("/", handler.GetAllMetricsHandler(metricsService))
-	r.With(middleware.LoggingMw, middleware.ValidationURLRqMw).Post("/update/{type}/{name}/{value}", handler.MetricsHandler(metricsService))
-	r.With(middleware.LoggingMw).Post("/update/", handler.JSONUpdateMetricsHandler(metricsService))
-	r.With(middleware.LoggingMw).Get("/value/{type}/{name}", handler.GetMetricHandler(metricsService))
-	r.With(middleware.LoggingMw).Post("/value/", handler.GetJSONMetricHandler(metricsService))
+	r.With(middleware.LoggingMw).Route("/", func(r chi.Router) {
+		r.Get("/", handler.GetAllMetricsHandler(metricsService))
+		r.With(middleware.ValidationURLRqMw).Post("/update/{type}/{name}/{value}", handler.MetricsHandler(metricsService))
+		r.Post("/update/", handler.JSONUpdateMetricsHandler(metricsService))
+		r.Get("/value/{type}/{name}", handler.GetMetricHandler(metricsService))
+		r.Post("/value/", handler.GetJSONMetricHandler(metricsService))
+	})
 
 	return http.ListenAndServe(host, r)
 
