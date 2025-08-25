@@ -3,7 +3,6 @@ package decorator
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/ValentinaKh/go-metrics/internal/storage"
@@ -52,7 +51,6 @@ func (s *StoreWithAsyncFile) StartFlush(notifyCtx context.Context) {
 		if err != nil {
 			logger.Log.Error(err.Error())
 		}
-		logger.Log.Info("AsyncFileStore stopped2")
 	}()
 
 	for {
@@ -75,7 +73,6 @@ func (s *StoreWithAsyncFile) StartFlush(notifyCtx context.Context) {
 }
 
 func (s *storeWithFile) flushToFile() error {
-	logger.Log.Info("Начинаем запись метрик")
 	metrics := s.GetAllMetrics()
 	tmp := make([]*models.Metrics, 0)
 
@@ -87,6 +84,5 @@ func (s *storeWithFile) flushToFile() error {
 			return err
 		}
 	}
-	logger.Log.Info(fmt.Sprintf("flush %v", metrics))
 	return nil
 }

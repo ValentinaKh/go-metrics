@@ -21,12 +21,16 @@ func MetricsHandler(service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		metric, err := parse(chi.URLParam(r, "type"), chi.URLParam(r, "name"), chi.URLParam(r, "value"))
 		if err != nil {
+			logger.Log.Error("UpdateMetric", zap.Error(err))
+
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		errU := service.UpdateMetric(*metric)
 		if errU != nil {
+			logger.Log.Error("UpdateMetric", zap.Error(errU))
+
 			http.Error(w, errU.Error(), http.StatusBadRequest)
 			return
 		}
@@ -46,6 +50,8 @@ func JSONUpdateMetricsHandler(service Service) http.HandlerFunc {
 
 		errU := service.UpdateMetric(request)
 		if errU != nil {
+			logger.Log.Error("UpdateMetric", zap.Error(errU))
+
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -92,12 +98,16 @@ func GetJSONMetricHandler(service Service) http.HandlerFunc {
 
 		value, err := service.GetMetric(request)
 		if err != nil {
+			logger.Log.Error("GetMetric", zap.Error(err))
+
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
 		rs, err := json.Marshal(value)
 		if err != nil {
+			logger.Log.Error("GetMetric", zap.Error(err))
+
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

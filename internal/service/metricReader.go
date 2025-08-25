@@ -32,5 +32,4 @@ func LoadMetrics(fileName string, st Storage) error {
 		}
 	}
 	return nil
-
 }
