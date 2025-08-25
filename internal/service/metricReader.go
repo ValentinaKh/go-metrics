@@ -20,11 +20,11 @@ func LoadMetrics(fileName string, st Storage) error {
 	if err != nil {
 		return err
 	}
+	logger.Log.Info(fmt.Sprintf(string(data)))
 	if len(data) == 0 {
 		return nil
 	}
 
-	logger.Log.Info(fmt.Sprintf(string(data)))
 	var metrics []models.Metrics
 	err = json.Unmarshal(data, &metrics)
 	if err != nil {

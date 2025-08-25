@@ -3,6 +3,7 @@ package decorator
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/ValentinaKh/go-metrics/internal/storage"
@@ -90,5 +91,6 @@ func (s *storeWithFile) flushToFile() error {
 	if err := s.encoder.Encode(tmp); err != nil {
 		return err
 	}
+	logger.Log.Info(fmt.Sprintf("flush %v", metrics))
 	return nil
 }
