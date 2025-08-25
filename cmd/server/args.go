@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"os"
 	"strconv"
 	"time"
@@ -39,5 +41,6 @@ func parseArgs() (string, time.Duration, string, bool) {
 		}
 		restore = b
 	}
+	logger.Log.Info(fmt.Sprintf("Полученные флаги %s, %d, %s, %v", host, interval, file, restore))
 	return host, time.Duration(interval) * time.Second, file, restore
 }

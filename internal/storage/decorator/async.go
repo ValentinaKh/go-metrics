@@ -82,7 +82,7 @@ func (s *storeWithFile) flushToFile() error {
 	}
 
 	metrics := s.GetAllMetrics()
-	tmp := make([]*models.Metrics, len(metrics))
+	tmp := make([]*models.Metrics, 0)
 
 	for k := range metrics {
 		tmp = append(tmp, metrics[k])

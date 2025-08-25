@@ -2,6 +2,8 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/ValentinaKh/go-metrics/internal/logger"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"io"
 	"os"
@@ -22,6 +24,7 @@ func LoadMetrics(fileName string, st Storage) error {
 		return nil
 	}
 
+	logger.Log.Info(fmt.Sprintf(string(data)))
 	var metrics []models.Metrics
 	err = json.Unmarshal(data, &metrics)
 	if err != nil {
