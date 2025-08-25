@@ -48,7 +48,11 @@ func (s *StoreWithAsyncFile) StartFlush(notifyCtx context.Context) {
 	ticker := time.NewTicker(s.interval)
 	defer func() {
 		ticker.Stop()
-		s.file.Close()
+		err := s.file.Close()
+		if err != nil {
+			logger.Log.Error(err.Error())
+		}
+		logger.Log.Info("AsyncFileStore stopped2")
 	}()
 
 	for {
@@ -72,6 +76,7 @@ func (s *StoreWithAsyncFile) StartFlush(notifyCtx context.Context) {
 
 func (s *storeWithFile) flushToFile() error {
 	//удаляем все данные
+	logger.Log.Info("Начинаем очистку файла")
 	err := s.file.Truncate(0)
 	if err != nil {
 		return err
@@ -81,7 +86,7 @@ func (s *storeWithFile) flushToFile() error {
 	if err != nil {
 		return err
 	}
-
+	logger.Log.Info("Начинаем запись метрик")
 	metrics := s.GetAllMetrics()
 	tmp := make([]*models.Metrics, 0)
 
