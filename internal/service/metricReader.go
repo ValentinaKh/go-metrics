@@ -2,8 +2,6 @@ package service
 
 import (
 	"encoding/json"
-	"fmt"
-	"github.com/ValentinaKh/go-metrics/internal/logger"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"io"
 	"os"
@@ -16,25 +14,23 @@ func LoadMetrics(fileName string, st Storage) error {
 	}
 	defer file.Close()
 
-	data, err := io.ReadAll(file)
-	if err != nil {
-		return err
-	}
-	logger.Log.Info(fmt.Sprintf(string(data)))
-	if len(data) == 0 {
-		return nil
-	}
+	decoder := json.NewDecoder(file)
 
-	var metrics []models.Metrics
-	err = json.Unmarshal(data, &metrics)
-	if err != nil {
-		return err
+	var lastResult []models.Metrics
+	for {
+		if err := decoder.Decode(&lastResult); err != nil {
+			if err == io.EOF { // Достигнут конец файла
+				break
+			}
+			return err
+		}
 	}
-	for i := range metrics {
-		err := st.UpdateMetric(metrics[i])
+	for i := range lastResult {
+		err := st.UpdateMetric(lastResult[i])
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+
 }
