@@ -65,3 +65,28 @@ func (r *MetricsRepository) GetAllMetrics(ctx context.Context) (map[string]*mode
 	}
 	return metrics, nil
 }
+
+func InitTables(ctx context.Context, db *sql.DB) {
+	query := `
+			CREATE TABLE IF NOT EXISTS metrics (
+            	id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                type_metrics VARCHAR(255) NOT NULL,
+            	delta INTEGER,
+                value DOUBLE PRECISION
+)
+`
+	_, err := db.ExecContext(ctx, query)
+	if err != nil {
+		panic(err)
+	}
+	_, err = db.ExecContext(ctx, `CREATE UNIQUE INDEX IF NOT EXISTS idx_metrics_name ON metrics(name)`)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_metrics_type ON metrics(type_metrics)`)
+	if err != nil {
+		panic(err)
+	}
+}

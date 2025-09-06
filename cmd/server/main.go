@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"github.com/ValentinaKh/go-metrics/internal/logger"
+	"github.com/ValentinaKh/go-metrics/internal/repository"
 	"github.com/ValentinaKh/go-metrics/internal/server"
 	"os"
 	"os/signal"
@@ -31,6 +32,9 @@ func run() {
 	args := parseArgs()
 
 	var db *sql.DB
+	if args.ConnStr != "" {
+		db = repository.MustConnectDB(args.ConnStr)
+	}
 	server.ConfigureServer(shutdownCtx, args, db)
 	defer func() {
 		if db != nil {

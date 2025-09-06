@@ -22,19 +22,23 @@ func ConfigureServer(ctx context.Context, cfg *config.ServerArg, db *sql.DB) {
 	var healthService handler.HealthChecker
 
 	if cfg.ConnStr != "" {
-		db = repository.MustConnectDB(cfg.ConnStr)
+		repository.InitTables(ctx, db)
+
 		healthService = service.NewHealthService(repository.NewHealthRepository(db))
 		strg = repository.NewMetricsRepository(db)
+
 		logger.Log.Info("Use database storage")
 	} else if cfg.File != "" {
 		writer, err := fileworker.NewFileWriter(cfg.File)
 		if err != nil {
 			panic(err)
 		}
+
 		strg, err = decorator.NewStoreWithAsyncFile(ctx, storage.NewMemStorage(), time.Duration(cfg.Interval)*time.Second, writer)
 		if err != nil {
 			panic(err)
 		}
+
 		if cfg.Restore {
 			err := service.LoadMetrics(cfg.File, strg)
 			if err != nil {
@@ -44,6 +48,7 @@ func ConfigureServer(ctx context.Context, cfg *config.ServerArg, db *sql.DB) {
 		logger.Log.Info("Use file storage")
 	} else {
 		strg = storage.NewMemStorage()
+
 		logger.Log.Info("Use mem storage")
 	}
 	createServer(service.NewMetricsService(strg), healthService, cfg.Host)
