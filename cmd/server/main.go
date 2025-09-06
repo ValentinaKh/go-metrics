@@ -5,6 +5,7 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/handler"
 	"github.com/ValentinaKh/go-metrics/internal/handler/middleware"
 	"github.com/ValentinaKh/go-metrics/internal/logger"
+	"github.com/ValentinaKh/go-metrics/internal/repository"
 	"github.com/ValentinaKh/go-metrics/internal/service"
 	"github.com/ValentinaKh/go-metrics/internal/storage"
 	"github.com/ValentinaKh/go-metrics/internal/storage/decorator"
@@ -34,18 +35,22 @@ func run() {
 
 	shutdownCtx, cancel := context.WithCancel(context.Background())
 
-	host, interval, fileName, restore := parseArgs()
+	args := parseArgs()
 
 	memSt := storage.NewMemStorage()
 
-	if restore {
-		err := service.LoadMetrics(fileName, memSt)
+	if args.Restore {
+		err := service.LoadMetrics(args.File, memSt)
 		if err != nil {
 			panic(err)
 		}
 	}
-	metricStorage := createMetricStorage(shutdownCtx, interval, fileName, memSt)
-	createServer(service.NewMetricsService(metricStorage), host)
+	db := repository.MustConnectDB(args.ConnStr)
+	defer db.Close()
+
+	healthService := service.NewHealthService(repository.NewHealthRepository(db))
+	metricStorage := createMetricStorage(shutdownCtx, time.Duration(args.Interval)*time.Second, args.File, memSt)
+	createServer(service.NewMetricsService(metricStorage), healthService, args.Host)
 
 	<-ctx.Done()
 	cancel()
@@ -53,7 +58,7 @@ func run() {
 	logger.Log.Info("Приложение останавливается")
 }
 
-func createServer(metricsService *service.MetricsService, host string) {
+func createServer(metricsService *service.MetricsService, healthService handler.HealthChecker, host string) {
 	r := chi.NewRouter()
 	r.With(middleware.LoggingMw, middleware.GzipMW).Route("/", func(r chi.Router) {
 		r.Get("/", handler.GetAllMetricsHandler(metricsService))
@@ -61,6 +66,7 @@ func createServer(metricsService *service.MetricsService, host string) {
 		r.Post("/update/", handler.JSONUpdateMetricsHandler(metricsService))
 		r.Get("/value/{type}/{name}", handler.GetMetricHandler(metricsService))
 		r.Post("/value/", handler.GetJSONMetricHandler(metricsService))
+		r.Get("/ping", handler.HealthHandler(context.TODO(), healthService))
 	})
 
 	srv := &http.Server{
