@@ -11,12 +11,12 @@ import (
 
 type MockStorage struct {
 	storage          map[string]*models.Metrics
-	UpdateMetricFunc func(name string, m models.Metrics) error
+	UpdateMetricFunc func(m models.Metrics) error
 }
 
-func (ms *MockStorage) UpdateMetric(name string, m models.Metrics) error {
-	ms.storage[name] = &m
-	return ms.UpdateMetricFunc(name, m)
+func (ms *MockStorage) UpdateMetric(m models.Metrics) error {
+	ms.storage[m.ID] = &m
+	return ms.UpdateMetricFunc(m)
 }
 
 func (ms *MockStorage) GetAndClear() map[string]*models.Metrics {
@@ -47,7 +47,7 @@ func Test_metricCollector_addMetric(t *testing.T) {
 			fields: fields{
 				s: &MockStorage{
 					storage: map[string]*models.Metrics{},
-					UpdateMetricFunc: func(name string, m models.Metrics) error {
+					UpdateMetricFunc: func(m models.Metrics) error {
 						return nil
 					}},
 				pollInterval: 2,
@@ -63,7 +63,7 @@ func Test_metricCollector_addMetric(t *testing.T) {
 			fields: fields{
 				s: &MockStorage{
 					storage: map[string]*models.Metrics{},
-					UpdateMetricFunc: func(name string, m models.Metrics) error {
+					UpdateMetricFunc: func(m models.Metrics) error {
 						return fmt.Errorf("test error")
 					}},
 				pollInterval: 2,
@@ -107,7 +107,7 @@ func Test_metricCollector_collectMetric(t *testing.T) {
 			fields: fields{
 				s: &MockStorage{
 					storage: map[string]*models.Metrics{},
-					UpdateMetricFunc: func(name string, m models.Metrics) error {
+					UpdateMetricFunc: func(m models.Metrics) error {
 						return nil
 					}},
 				pollInterval: 2,
@@ -123,7 +123,7 @@ func Test_metricCollector_collectMetric(t *testing.T) {
 			fields: fields{
 				s: &MockStorage{
 					storage: map[string]*models.Metrics{},
-					UpdateMetricFunc: func(name string, m models.Metrics) error {
+					UpdateMetricFunc: func(m models.Metrics) error {
 						return fmt.Errorf("test error")
 					}},
 				pollInterval: 2,
@@ -139,7 +139,7 @@ func Test_metricCollector_collectMetric(t *testing.T) {
 			fields: fields{
 				s: &MockStorage{
 					storage: map[string]*models.Metrics{},
-					UpdateMetricFunc: func(name string, m models.Metrics) error {
+					UpdateMetricFunc: func(m models.Metrics) error {
 						return fmt.Errorf("add error")
 					}},
 				pollInterval: 2,

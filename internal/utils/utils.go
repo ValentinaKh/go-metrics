@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"regexp"
 )
 
@@ -11,11 +10,4 @@ var matcher = regexp.MustCompile(urlPattern)
 
 func ParseURL(url string) []string {
 	return matcher.FindStringSubmatch(url)
-}
-
-func ValueOrNil[T any](ptr *T, nilValue string) string {
-	if ptr == nil {
-		return nilValue
-	}
-	return fmt.Sprintf("%v", *ptr)
 }

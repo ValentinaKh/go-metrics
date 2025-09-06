@@ -1,4 +1,4 @@
-POST http://localhost:8080/update/counter/testSetGet164/102
+POST http://localhost:8080/update/counter/PauseTotalNs3/721200
 Content-Type: text/plain
 
 ###
@@ -6,9 +6,14 @@ POST http://localhost:8080/update/gauge/
 Content-Type: text/plain
 
 ###
-GET http://localhost:8080/value/counter/someMetric1
+GET http://localhost:8080/
 Content-Type: text/plain
 
 ###
-GET http://localhost:8080/
-Content-Type: text/plain
+POST http://localhost:8080/value/
+Content-Type: application/json
+
+{
+  "id": "PauseTotalNs",
+  "type": "gauge"
+}

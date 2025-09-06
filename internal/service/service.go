@@ -1,13 +1,14 @@
 package service
 
 import (
+	"fmt"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"strconv"
 )
 
 type Storage interface {
 	// UpdateMetric обновляем метрику в хранилище
-	UpdateMetric(key string, value models.Metrics) error
+	UpdateMetric(value models.Metrics) error
 	// GetAndClear овозвращаем то, что находится в хранилище и очищаем хранилище
 	GetAndClear() map[string]*models.Metrics
 	GetAllMetrics() map[string]*models.Metrics
@@ -21,52 +22,20 @@ func NewMetricsService(storage Storage) *MetricsService {
 	return &MetricsService{strg: storage}
 }
 
-func (s MetricsService) Handle(metricType, name, value string) error {
-	metric, err := s.parse(metricType, value)
-	if err != nil {
-		return err
-	}
-	return s.strg.UpdateMetric(name, *metric)
+func (s MetricsService) UpdateMetric(metric models.Metrics) error {
+	return s.strg.UpdateMetric(metric)
 }
 
-func (s MetricsService) parse(metricType string, value string) (*models.Metrics, error) {
-	var metric models.Metrics
-	switch metricType {
-	case models.Counter:
-		value, err := strconv.ParseInt(value, 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		metric = models.Metrics{
-			MType: models.Counter,
-			Delta: &value,
-		}
-	case models.Gauge:
-		value, err := strconv.ParseFloat(value, 64)
-		if err != nil {
-			return nil, err
-		}
-		metric = models.Metrics{
-			MType: models.Gauge,
-			Value: &value,
-		}
-	}
-	return &metric, nil
-}
-
-func (s MetricsService) GetMetric(name string) (string, bool) {
+func (s MetricsService) GetMetric(m models.Metrics) (*models.Metrics, error) {
 	metrics := s.strg.GetAllMetrics()
-	metric, ok := metrics[name]
+	metric, ok := metrics[m.ID]
 	if !ok {
-		return "", false
+		return nil, fmt.Errorf("метрика не найдена")
 	}
-	switch metric.MType {
-	case models.Counter:
-		return strconv.FormatInt(*metric.Delta, 10), true
-	case models.Gauge:
-		return strconv.FormatFloat(*metric.Value, 'f', -1, 64), true
+	if metric.MType != m.MType {
+		return nil, fmt.Errorf("метрика с таким типом не найдена")
 	}
-	return "", false
+	return metric, nil
 }
 
 func (s MetricsService) GetAllMetrics() map[string]string {
