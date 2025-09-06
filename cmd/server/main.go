@@ -45,10 +45,13 @@ func run() {
 			panic(err)
 		}
 	}
-	db := repository.MustConnectDB(args.ConnStr)
-	defer db.Close()
+	var healthService handler.HealthChecker
+	if args.ConnStr != "" {
+		db := repository.MustConnectDB(args.ConnStr)
+		defer db.Close()
+		healthService = service.NewHealthService(repository.NewHealthRepository(db))
+	}
 
-	healthService := service.NewHealthService(repository.NewHealthRepository(db))
 	metricStorage := createMetricStorage(shutdownCtx, time.Duration(args.Interval)*time.Second, args.File, memSt)
 	createServer(service.NewMetricsService(metricStorage), healthService, args.Host)
 
@@ -66,7 +69,9 @@ func createServer(metricsService *service.MetricsService, healthService handler.
 		r.Post("/update/", handler.JSONUpdateMetricsHandler(metricsService))
 		r.Get("/value/{type}/{name}", handler.GetMetricHandler(metricsService))
 		r.Post("/value/", handler.GetJSONMetricHandler(metricsService))
-		r.Get("/ping", handler.HealthHandler(context.TODO(), healthService))
+		if healthService != nil {
+			r.Get("/ping", handler.HealthHandler(context.TODO(), healthService))
+		}
 	})
 
 	srv := &http.Server{
