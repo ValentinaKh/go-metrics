@@ -17,3 +17,7 @@ Content-Type: application/json
   "id": "PauseTotalNs",
   "type": "gauge"
 }
+
+###
+GET http://localhost:8080/ping
+Content-Type: text/plain

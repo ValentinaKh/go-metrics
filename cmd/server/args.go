@@ -1,44 +1,12 @@
 package main
 
 import (
-	"flag"
-	"os"
-	"strconv"
-	"time"
+	"github.com/ValentinaKh/go-metrics/internal/config"
+	"github.com/alexflint/go-arg"
 )
 
-func parseArgs() (string, time.Duration, string, bool) {
-	var host, file string
-	var interval uint64
-	var restore bool
-
-	flag.StringVar(&host, "a", "localhost:8080", "address for endpoint")
-	flag.Uint64Var(&interval, "i", 300, "store interval")
-	flag.StringVar(&file, "f", "metrics.json", "file name")
-	flag.BoolVar(&restore, "r", true, "load history")
-
-	flag.Parse()
-
-	if r, ok := os.LookupEnv("ADDRESS"); ok {
-		host = r
-	}
-	if r, ok := os.LookupEnv("STORE_INTERVAL"); ok {
-		res, err := strconv.ParseUint(r, 10, 64)
-		if err != nil {
-			panic(err)
-		}
-		interval = res
-	}
-	if r, ok := os.LookupEnv("FILE_STORAGE_PATH"); ok {
-		file = r
-	}
-	if r, ok := os.LookupEnv("RESTORE"); ok {
-		b, err := strconv.ParseBool(r)
-		if err != nil {
-			panic(err)
-		}
-		restore = b
-	}
-
-	return host, time.Duration(interval) * time.Second, file, restore
+func parseArgs() *config.ServerArg {
+	var sArg config.ServerArg
+	arg.MustParse(&sArg)
+	return &sArg
 }

@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"github.com/ValentinaKh/go-metrics/internal/model"
 	"sync"
@@ -18,7 +19,7 @@ func NewMemStorage() *MemStorage {
 	}
 }
 
-func (s *MemStorage) UpdateMetric(value models.Metrics) error {
+func (s *MemStorage) UpdateMetric(_ context.Context, value models.Metrics) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -52,14 +53,14 @@ func (s *MemStorage) GetAndClear() map[string]*models.Metrics {
 	return copyMap
 }
 
-func (s *MemStorage) GetAllMetrics() map[string]*models.Metrics {
+func (s *MemStorage) GetAllMetrics(_ context.Context) (map[string]*models.Metrics, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	copyMap := make(map[string]*models.Metrics)
 	for k, v := range s.storage {
 		copyMap[k] = v
 	}
-	return copyMap
+	return copyMap, nil
 }
 
 func addIntPtr(a, b *int64) *int64 {
@@ -69,4 +70,29 @@ func addIntPtr(a, b *int64) *int64 {
 	}
 	res := va + *b
 	return &res
+}
+
+func (s *MemStorage) UpdateMetrics(_ context.Context, values []models.Metrics) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	for _, value := range values {
+		key := value.ID
+		metric, ok := s.storage[key]
+		if !ok {
+			s.storage[key] = &value
+		} else {
+			if metric.MType != value.MType {
+				return fmt.Errorf("incorrect type")
+			}
+
+			switch value.MType {
+			case models.Counter:
+				metric.Delta = addIntPtr(metric.Delta, value.Delta)
+			case models.Gauge:
+				metric.Value = value.Value
+			}
+		}
+	}
+	return nil
 }

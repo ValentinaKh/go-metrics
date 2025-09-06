@@ -114,7 +114,7 @@ func (c *metricCollector) Collect(ctx context.Context) {
 
 func (c *metricCollector) addMetric(name string, value float64) error {
 	tv := value
-	return c.s.UpdateMetric(models.Metrics{
+	return c.s.UpdateMetric(context.TODO(), models.Metrics{
 		ID:    name,
 		MType: models.Gauge,
 		Value: &tv,
@@ -134,7 +134,7 @@ func (c *metricCollector) collectMetric() error {
 		count++
 	}
 
-	if err := c.s.UpdateMetric(models.Metrics{
+	if err := c.s.UpdateMetric(context.TODO(), models.Metrics{
 		ID:    pollCount,
 		MType: models.Counter,
 		Delta: &count,
