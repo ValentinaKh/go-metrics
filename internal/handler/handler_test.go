@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/go-chi/chi/v5"
@@ -19,19 +20,19 @@ type MockMetricsService struct {
 	GetAllMetricsFunc func() map[string]string
 }
 
-func (m *MockMetricsService) UpdateMetric(metric models.Metrics) error {
+func (m *MockMetricsService) UpdateMetric(_ context.Context, metric models.Metrics) error {
 	if m.HandleFunc != nil {
 		return m.HandleFunc(metric)
 	}
 	return nil
 }
 
-func (m *MockMetricsService) GetMetric(metric models.Metrics) (*models.Metrics, error) {
+func (m *MockMetricsService) GetMetric(_ context.Context, metric models.Metrics) (*models.Metrics, error) {
 	return m.GetMetricFunc(metric)
 }
 
-func (m *MockMetricsService) GetAllMetrics() map[string]string {
-	return m.GetAllMetricsFunc()
+func (m *MockMetricsService) GetAllMetrics(_ context.Context) (map[string]string, error) {
+	return m.GetAllMetricsFunc(), nil
 }
 
 func TestMetricsHandler(t *testing.T) {

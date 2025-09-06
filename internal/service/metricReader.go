@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"io"
@@ -26,7 +27,7 @@ func LoadMetrics(fileName string, st Storage) error {
 		}
 	}
 	for i := range lastResult {
-		err := st.UpdateMetric(lastResult[i])
+		err := st.UpdateMetric(context.TODO(), lastResult[i])
 		if err != nil {
 			return err
 		}

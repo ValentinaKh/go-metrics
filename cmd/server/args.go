@@ -1,19 +1,12 @@
 package main
 
 import (
+	"github.com/ValentinaKh/go-metrics/internal/config"
 	"github.com/alexflint/go-arg"
 )
 
-type serverArg struct {
-	Host     string `arg:"-a,env:ADDRESS" help:"адрес сервера" default:"localhost:8080"`
-	Interval uint64 `arg:"-i,env:STORE_INTERVAL" help:"store interval" default:"300"`
-	File     string `arg:"-f,env:FILE_STORAGE_PATH" help:"file name" default:"metrics.json"`
-	Restore  bool   `arg:"-r,env:RESTORE" help:"load history" default:"true"`
-	ConnStr  string `arg:"-d,env:DATABASE_DSN" help:"db address"`
-}
-
-func parseArgs() *serverArg {
-	var sArg serverArg
+func parseArgs() *config.ServerArg {
+	var sArg config.ServerArg
 	arg.MustParse(&sArg)
 	return &sArg
 }
