@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/ValentinaKh/go-metrics/internal/logger"
@@ -12,9 +13,9 @@ import (
 )
 
 type Service interface {
-	UpdateMetric(metric models.Metrics) error
-	GetMetric(metric models.Metrics) (*models.Metrics, error)
-	GetAllMetrics() map[string]string
+	UpdateMetric(ctx context.Context, metric models.Metrics) error
+	GetMetric(ctx context.Context, metric models.Metrics) (*models.Metrics, error)
+	GetAllMetrics(ctx context.Context) (map[string]string, error)
 }
 
 func MetricsHandler(service Service) http.HandlerFunc {
@@ -27,7 +28,7 @@ func MetricsHandler(service Service) http.HandlerFunc {
 			return
 		}
 
-		errU := service.UpdateMetric(*metric)
+		errU := service.UpdateMetric(context.TODO(), *metric)
 		if errU != nil {
 			logger.Log.Error("UpdateMetric", zap.Error(errU))
 
@@ -48,7 +49,7 @@ func JSONUpdateMetricsHandler(service Service) http.HandlerFunc {
 			return
 		}
 
-		errU := service.UpdateMetric(request)
+		errU := service.UpdateMetric(context.TODO(), request)
 		if errU != nil {
 			logger.Log.Error("UpdateMetric", zap.Error(errU))
 
@@ -63,7 +64,7 @@ func JSONUpdateMetricsHandler(service Service) http.HandlerFunc {
 func GetMetricHandler(service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-		value, err := service.GetMetric(models.Metrics{ID: name, MType: chi.URLParam(r, "type")})
+		value, err := service.GetMetric(context.TODO(), models.Metrics{ID: name, MType: chi.URLParam(r, "type")})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
@@ -96,7 +97,7 @@ func GetJSONMetricHandler(service Service) http.HandlerFunc {
 			return
 		}
 
-		value, err := service.GetMetric(request)
+		value, err := service.GetMetric(context.TODO(), request)
 		if err != nil {
 			logger.Log.Error("GetMetric", zap.Error(err))
 
@@ -119,7 +120,11 @@ func GetJSONMetricHandler(service Service) http.HandlerFunc {
 
 func GetAllMetricsHandler(service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		values := service.GetAllMetrics()
+		values, err := service.GetAllMetrics(context.TODO())
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
 

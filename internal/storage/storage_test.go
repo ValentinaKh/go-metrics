@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/stretchr/testify/assert"
 	"sync"
@@ -221,7 +222,7 @@ func Test_memStorage_UpdateMetric(t *testing.T) {
 				mutex:   sync.Mutex{},
 				storage: tt.fields.storage,
 			}
-			err := s.UpdateMetric(tt.args.value)
+			err := s.UpdateMetric(context.TODO(), tt.args.value)
 			assert.Equal(t, tt.wantErr, err != nil)
 			assert.Equal(t, tt.want, s.storage)
 
@@ -276,7 +277,9 @@ func Test_memStorage_GetAllMetrics(t *testing.T) {
 				mutex:   sync.Mutex{},
 				storage: tt.fields.storage,
 			}
-			assert.Equal(t, tt.want, s.GetAllMetrics())
+			metrics, err := s.GetAllMetrics(context.TODO())
+			assert.Nil(t, err)
+			assert.Equal(t, tt.want, metrics)
 		})
 	}
 }

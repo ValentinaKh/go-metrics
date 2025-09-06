@@ -13,12 +13,12 @@ type Agent interface {
 }
 
 type MetricAgent struct {
-	s              service.Storage
+	s              service.TempStorage
 	h              Sender
 	reportInterval time.Duration
 }
 
-func NewMetricAgent(s service.Storage, h Sender, reportInterval time.Duration) *MetricAgent {
+func NewMetricAgent(s service.TempStorage, h Sender, reportInterval time.Duration) *MetricAgent {
 	return &MetricAgent{s, h, reportInterval}
 }
 

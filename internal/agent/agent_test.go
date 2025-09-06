@@ -26,21 +26,13 @@ type MockStorage struct {
 	storage map[string]*models.Metrics
 }
 
-func (s *MockStorage) UpdateMetric(_ models.Metrics) error {
-	return nil
-}
-
 func (s *MockStorage) GetAndClear() map[string]*models.Metrics {
-	return s.storage
-}
-
-func (s *MockStorage) GetAllMetrics() map[string]*models.Metrics {
 	return s.storage
 }
 
 func Test_metricAgent_send(t *testing.T) {
 	type fields struct {
-		s              service.Storage
+		s              service.TempStorage
 		h              Sender
 		reportInterval time.Duration
 	}

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/stretchr/testify/assert"
@@ -13,15 +14,15 @@ type SMockStorage struct {
 	err     error
 }
 
-func (ms *SMockStorage) UpdateMetric(m models.Metrics) error {
+func (ms *SMockStorage) UpdateMetric(ctx context.Context, m models.Metrics) error {
 	ms.storage[m.ID] = &m
 	return ms.err
 }
 func (ms *SMockStorage) GetAndClear() map[string]*models.Metrics {
 	return ms.storage
 }
-func (ms *SMockStorage) GetAllMetrics() map[string]*models.Metrics {
-	return ms.storage
+func (ms *SMockStorage) GetAllMetrics(ctx context.Context) (map[string]*models.Metrics, error) {
+	return ms.storage, nil
 }
 
 func TestMetricsService_UpdateMetric(t *testing.T) {
@@ -101,7 +102,7 @@ func TestMetricsService_UpdateMetric(t *testing.T) {
 				t.Error(err2)
 				return
 			}
-			err := service.UpdateMetric(*metrics)
+			err := service.UpdateMetric(context.TODO(), *metrics)
 
 			assert.Equal(t, tt.wantErr, err != nil)
 
@@ -200,7 +201,7 @@ func TestMetricsService_GetMetric(t *testing.T) {
 				strg: tt.fields.s,
 			}
 
-			metric, err := service.GetMetric(models.Metrics{
+			metric, err := service.GetMetric(context.TODO(), models.Metrics{
 				ID:    tt.metricName,
 				MType: tt.metricType,
 			})
@@ -254,7 +255,9 @@ func TestMetricsService_GetAllMetrics(t *testing.T) {
 				strg: tt.fields.s,
 			}
 
-			assert.Equal(t, tt.want, service.GetAllMetrics())
+			metrics, err := service.GetAllMetrics(context.TODO())
+			assert.Nil(t, err)
+			assert.Equal(t, tt.want, metrics)
 		})
 	}
 }

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/stretchr/testify/assert"
@@ -14,7 +15,7 @@ type MockStorage struct {
 	UpdateMetricFunc func(m models.Metrics) error
 }
 
-func (ms *MockStorage) UpdateMetric(m models.Metrics) error {
+func (ms *MockStorage) UpdateMetric(ctx context.Context, m models.Metrics) error {
 	ms.storage[m.ID] = &m
 	return ms.UpdateMetricFunc(m)
 }
@@ -23,8 +24,8 @@ func (ms *MockStorage) GetAndClear() map[string]*models.Metrics {
 	return ms.storage
 }
 
-func (ms *MockStorage) GetAllMetrics() map[string]*models.Metrics {
-	return nil
+func (ms *MockStorage) GetAllMetrics(_ context.Context) (map[string]*models.Metrics, error) {
+	return nil, nil
 }
 
 func Test_metricCollector_addMetric(t *testing.T) {
