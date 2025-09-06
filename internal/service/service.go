@@ -10,6 +10,7 @@ import (
 type Storage interface {
 	// UpdateMetric обновляем метрику в хранилище
 	UpdateMetric(ctx context.Context, value models.Metrics) error
+	UpdateMetrics(ctx context.Context, values []models.Metrics) error
 	GetAllMetrics(ctx context.Context) (map[string]*models.Metrics, error)
 }
 
@@ -63,4 +64,8 @@ func (s MetricsService) GetAllMetrics(ctx context.Context) (map[string]string, e
 		result[name] = value
 	}
 	return result, nil
+}
+
+func (s MetricsService) UpdateMetrics(ctx context.Context, metrics []models.Metrics) error {
+	return s.strg.UpdateMetrics(ctx, metrics)
 }

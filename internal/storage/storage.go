@@ -71,3 +71,28 @@ func addIntPtr(a, b *int64) *int64 {
 	res := va + *b
 	return &res
 }
+
+func (s *MemStorage) UpdateMetrics(_ context.Context, values []models.Metrics) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	for _, value := range values {
+		key := value.ID
+		metric, ok := s.storage[key]
+		if !ok {
+			s.storage[key] = &value
+		} else {
+			if metric.MType != value.MType {
+				return fmt.Errorf("incorrect type")
+			}
+
+			switch value.MType {
+			case models.Counter:
+				metric.Delta = addIntPtr(metric.Delta, value.Delta)
+			case models.Gauge:
+				metric.Value = value.Value
+			}
+		}
+	}
+	return nil
+}

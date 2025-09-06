@@ -60,7 +60,8 @@ func createServer(metricsService *service.MetricsService, healthService handler.
 	r.With(middleware.LoggingMw, middleware.GzipMW).Route("/", func(r chi.Router) {
 		r.Get("/", handler.GetAllMetricsHandler(metricsService))
 		r.With(middleware.ValidationURLRqMw).Post("/update/{type}/{name}/{value}", handler.MetricsHandler(metricsService))
-		r.Post("/update/", handler.JSONUpdateMetricsHandler(metricsService))
+		r.Post("/update/", handler.JSONUpdateMetricHandler(metricsService))
+		r.Post("/updates/", handler.JSONUpdateMetricsHandler(metricsService))
 		r.Get("/value/{type}/{name}", handler.GetMetricHandler(metricsService))
 		r.Post("/value/", handler.GetJSONMetricHandler(metricsService))
 		if healthService != nil {

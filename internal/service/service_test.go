@@ -25,6 +25,13 @@ func (ms *SMockStorage) GetAllMetrics(ctx context.Context) (map[string]*models.M
 	return ms.storage, nil
 }
 
+func (ms *SMockStorage) UpdateMetrics(ctx context.Context, m []models.Metrics) error {
+	for _, metric := range m {
+		ms.storage[metric.ID] = &metric
+	}
+	return ms.err
+}
+
 func TestMetricsService_UpdateMetric(t *testing.T) {
 	type fields struct {
 		s Storage

@@ -35,6 +35,10 @@ func (m *MockMetricsService) GetAllMetrics(_ context.Context) (map[string]string
 	return m.GetAllMetricsFunc(), nil
 }
 
+func (m *MockMetricsService) UpdateMetrics(_ context.Context, metrics []models.Metrics) error {
+	return nil
+}
+
 func TestMetricsHandler(t *testing.T) {
 	type args struct {
 		service Service
@@ -250,7 +254,7 @@ func Test_GetAllMetricsHandler(t *testing.T) {
 	}
 }
 
-func TestJsonUpdateMetricsHandler(t *testing.T) {
+func TestJsonUpdateMetricHandler(t *testing.T) {
 	type args struct {
 		service Service
 		json    string
@@ -313,7 +317,7 @@ func TestJsonUpdateMetricsHandler(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			handler := JSONUpdateMetricsHandler(test.args.service)
+			handler := JSONUpdateMetricHandler(test.args.service)
 			request := httptest.NewRequest(http.MethodPost, "/update", bytes.NewBufferString(test.args.json))
 			w := httptest.NewRecorder()
 

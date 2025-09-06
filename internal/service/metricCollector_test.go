@@ -28,6 +28,10 @@ func (ms *MockStorage) GetAllMetrics(_ context.Context) (map[string]*models.Metr
 	return nil, nil
 }
 
+func (ms *MockStorage) UpdateMetrics(ctx context.Context, m []models.Metrics) error {
+	return nil
+}
+
 func Test_metricCollector_addMetric(t *testing.T) {
 	type fields struct {
 		s            Storage

@@ -23,7 +23,6 @@ func NewPostSender(host string) *HTTPSender {
 }
 
 func (s *HTTPSender) Send(data []byte) error {
-
 	var compressedBody bytes.Buffer
 	gz := gzip.NewWriter(&compressedBody)
 	_, err := gz.Write(data)
@@ -54,7 +53,7 @@ func buildURL(host string) string {
 	u := &url.URL{
 		Scheme: "http",
 		Host:   host,
-		Path:   "/update/",
+		Path:   "/updates/",
 	}
 	return u.String()
 }

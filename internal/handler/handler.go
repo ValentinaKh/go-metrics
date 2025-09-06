@@ -14,6 +14,7 @@ import (
 
 type Service interface {
 	UpdateMetric(ctx context.Context, metric models.Metrics) error
+	UpdateMetrics(ctx context.Context, metrics []models.Metrics) error
 	GetMetric(ctx context.Context, metric models.Metrics) (*models.Metrics, error)
 	GetAllMetrics(ctx context.Context) (map[string]string, error)
 }
@@ -39,7 +40,7 @@ func MetricsHandler(service Service) http.HandlerFunc {
 	}
 }
 
-func JSONUpdateMetricsHandler(service Service) http.HandlerFunc {
+func JSONUpdateMetricHandler(service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var request models.Metrics
 		dec := json.NewDecoder(r.Body)
@@ -136,6 +137,28 @@ func GetAllMetricsHandler(service Service) http.HandlerFunc {
 			fmt.Fprintf(w, `<li><strong>%s</strong> %s</li>`, name, m)
 		}
 		w.Write([]byte(`</ul></body></html>`))
+	}
+}
+
+func JSONUpdateMetricsHandler(service Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var request []models.Metrics
+		dec := json.NewDecoder(r.Body)
+		if err := dec.Decode(&request); err != nil {
+			logger.Log.Error("cannot decode request JSON body", zap.Error(err))
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		errU := service.UpdateMetrics(context.TODO(), request)
+		if errU != nil {
+			logger.Log.Error("UpdateMetrics", zap.Error(errU))
+
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
