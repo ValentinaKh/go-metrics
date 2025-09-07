@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"compress/gzip"
+	"github.com/ValentinaKh/go-metrics/internal/config"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -10,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestHTTPSender_Send_Success(t *testing.T) {
@@ -40,7 +42,10 @@ func TestHTTPSender_Send_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	sender := &HTTPSender{client: resty.New(), url: server.URL}
+	sender := &HTTPSender{client: resty.New(), url: server.URL, cfg: config.RetryConfig{
+		MaxAttempts: 1,
+		Delays:      []time.Duration{1 * time.Second},
+	}}
 
 	err := sender.Send([]byte(expected))
 
@@ -48,7 +53,10 @@ func TestHTTPSender_Send_Success(t *testing.T) {
 }
 
 func TestHTTPSender_Send_InvalidURL(t *testing.T) {
-	sender := &HTTPSender{client: resty.New(), url: "://invalid-url"}
+	sender := &HTTPSender{client: resty.New(), url: "://invalid-url", cfg: config.RetryConfig{
+		MaxAttempts: 1,
+		Delays:      []time.Duration{1 * time.Second},
+	}}
 
 	err := sender.Send([]byte(`{}`))
 

@@ -3,6 +3,9 @@ package agent
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
+	"github.com/ValentinaKh/go-metrics/internal/apperror"
+	"github.com/ValentinaKh/go-metrics/internal/config"
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"github.com/go-resty/resty/v2"
 	"go.uber.org/zap"
@@ -16,10 +19,11 @@ type Sender interface {
 type HTTPSender struct {
 	client *resty.Client
 	url    string
+	cfg    config.RetryConfig
 }
 
-func NewPostSender(host string) *HTTPSender {
-	return &HTTPSender{client: resty.New(), url: buildURL(host)}
+func NewPostSender(host string, cfg config.RetryConfig) *HTTPSender {
+	return &HTTPSender{client: resty.New(), url: buildURL(host), cfg: cfg}
 }
 
 func (s *HTTPSender) Send(data []byte) error {
@@ -34,16 +38,18 @@ func (s *HTTPSender) Send(data []byte) error {
 		return err
 	}
 
-	resp, err := s.client.R().
-		SetHeaders(map[string]string{"Content-Type": "application/json", "Content-Encoding": "gzip"}).
-		SetBody(compressedBody.Bytes()).
-		Post(s.url)
+	response, err := apperror.DoWithRetry(context.TODO(), apperror.NewNetworkErrorClassifier(), func() (*resty.Response, error) {
+		return s.client.R().
+			SetHeaders(map[string]string{"Content-Type": "application/json", "Content-Encoding": "gzip"}).
+			SetBody(compressedBody.Bytes()).
+			Post(s.url)
+	}, s.cfg)
 	if err != nil {
 		return err
 	}
 
-	if resp.StatusCode() != 200 {
-		logger.Log.Info("Status Code:", zap.Int("code", resp.StatusCode()))
+	if response.StatusCode() != 200 {
+		logger.Log.Info("Status Code:", zap.Int("code", response.StatusCode()))
 	}
 
 	return nil

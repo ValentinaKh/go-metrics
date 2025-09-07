@@ -25,7 +25,10 @@ func ConfigureServer(ctx context.Context, cfg *config.ServerArg, db *sql.DB) {
 		repository.InitTables(ctx, db)
 
 		healthService = service.NewHealthService(repository.NewHealthRepository(db))
-		strg = repository.NewMetricsRepository(db)
+		strg = repository.NewMetricsRepository(db, config.RetryConfig{
+			MaxAttempts: 3,
+			Delays:      []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second},
+		})
 
 		logger.Log.Info("Use database storage")
 	} else if cfg.File != "" {

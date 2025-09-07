@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"github.com/ValentinaKh/go-metrics/internal/agent"
+	"github.com/ValentinaKh/go-metrics/internal/config"
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"github.com/ValentinaKh/go-metrics/internal/service"
 	"github.com/ValentinaKh/go-metrics/internal/storage"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 func main() {
@@ -32,7 +34,11 @@ func run() {
 	shutdownCtx, cancel := context.WithCancel(context.Background())
 
 	st := storage.NewMemStorage()
-	metricAgent := agent.NewMetricAgent(st, agent.NewPostSender(host), reportInterval)
+	metricAgent := agent.NewMetricAgent(st, agent.NewPostSender(host,
+		config.RetryConfig{
+			MaxAttempts: 3,
+			Delays:      []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second},
+		}), reportInterval)
 	collector := service.NewMetricCollector(st, pollInterval)
 
 	go collector.Collect(shutdownCtx)

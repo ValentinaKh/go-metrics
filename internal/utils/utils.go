@@ -24,3 +24,10 @@ func LoadEnvVar[T any](key string, flagValue T, setter func(string) (T, error)) 
 	}
 	return flagValue
 }
+
+func ToString[T any](ptr *T) string {
+	if ptr == nil {
+		return "nil"
+	}
+	return fmt.Sprintf("%v", *ptr)
+}
