@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type Service interface {
@@ -19,8 +20,11 @@ type Service interface {
 	GetAllMetrics(ctx context.Context) (map[string]string, error)
 }
 
-func MetricsHandler(service Service) http.HandlerFunc {
+func MetricsHandler(ctx context.Context, service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		timeout, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
 		metric, err := parse(chi.URLParam(r, "type"), chi.URLParam(r, "name"), chi.URLParam(r, "value"))
 		if err != nil {
 			logger.Log.Error("UpdateMetric", zap.Error(err))
@@ -29,7 +33,7 @@ func MetricsHandler(service Service) http.HandlerFunc {
 			return
 		}
 
-		errU := service.UpdateMetric(context.TODO(), *metric)
+		errU := service.UpdateMetric(timeout, *metric)
 		if errU != nil {
 			logger.Log.Error("UpdateMetric", zap.Error(errU))
 
@@ -40,8 +44,11 @@ func MetricsHandler(service Service) http.HandlerFunc {
 	}
 }
 
-func JSONUpdateMetricHandler(service Service) http.HandlerFunc {
+func JSONUpdateMetricHandler(ctx context.Context, service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		timeout, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
 		var request models.Metrics
 		dec := json.NewDecoder(r.Body)
 		if err := dec.Decode(&request); err != nil {
@@ -50,7 +57,7 @@ func JSONUpdateMetricHandler(service Service) http.HandlerFunc {
 			return
 		}
 
-		errU := service.UpdateMetric(context.TODO(), request)
+		errU := service.UpdateMetric(timeout, request)
 		if errU != nil {
 			logger.Log.Error("UpdateMetric", zap.Error(errU))
 
@@ -62,10 +69,13 @@ func JSONUpdateMetricHandler(service Service) http.HandlerFunc {
 	}
 }
 
-func GetMetricHandler(service Service) http.HandlerFunc {
+func GetMetricHandler(ctx context.Context, service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		timeout, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
 		name := chi.URLParam(r, "name")
-		value, err := service.GetMetric(context.TODO(), models.Metrics{ID: name, MType: chi.URLParam(r, "type")})
+		value, err := service.GetMetric(timeout, models.Metrics{ID: name, MType: chi.URLParam(r, "type")})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
@@ -86,8 +96,11 @@ func GetMetricHandler(service Service) http.HandlerFunc {
 	}
 }
 
-func GetJSONMetricHandler(service Service) http.HandlerFunc {
+func GetJSONMetricHandler(ctx context.Context, service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		timeout, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
 		w.Header().Set("Content-Type", "application/json")
 
 		var request models.Metrics
@@ -98,7 +111,7 @@ func GetJSONMetricHandler(service Service) http.HandlerFunc {
 			return
 		}
 
-		value, err := service.GetMetric(context.TODO(), request)
+		value, err := service.GetMetric(timeout, request)
 		if err != nil {
 			logger.Log.Error("GetMetric", zap.Error(err))
 
@@ -119,9 +132,12 @@ func GetJSONMetricHandler(service Service) http.HandlerFunc {
 	}
 }
 
-func GetAllMetricsHandler(service Service) http.HandlerFunc {
+func GetAllMetricsHandler(ctx context.Context, service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		values, err := service.GetAllMetrics(context.TODO())
+		timeout, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
+		values, err := service.GetAllMetrics(timeout)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -140,8 +156,11 @@ func GetAllMetricsHandler(service Service) http.HandlerFunc {
 	}
 }
 
-func JSONUpdateMetricsHandler(service Service) http.HandlerFunc {
+func JSONUpdateMetricsHandler(ctx context.Context, service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		timeout, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
 		var request []models.Metrics
 		dec := json.NewDecoder(r.Body)
 		if err := dec.Decode(&request); err != nil {
@@ -150,7 +169,7 @@ func JSONUpdateMetricsHandler(service Service) http.HandlerFunc {
 			return
 		}
 
-		errU := service.UpdateMetrics(context.TODO(), request)
+		errU := service.UpdateMetrics(timeout, request)
 		if errU != nil {
 			logger.Log.Error("UpdateMetrics", zap.Error(errU))
 

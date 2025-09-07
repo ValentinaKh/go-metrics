@@ -17,12 +17,12 @@ import (
 	"time"
 )
 
-func ConfigureServer(ctx context.Context, cfg *config.ServerArg, db *sql.DB) {
+func ConfigureServer(shutdownCtx context.Context, cfg *config.ServerArg, db *sql.DB) {
 	var strg service.Storage
 	var healthService handler.HealthChecker
 
 	if cfg.ConnStr != "" {
-		repository.InitTables(ctx, db)
+		repository.InitTables(shutdownCtx, db)
 
 		healthService = service.NewHealthService(repository.NewHealthRepository(db))
 		strg = repository.NewMetricsRepository(db, config.RetryConfig{
@@ -37,7 +37,7 @@ func ConfigureServer(ctx context.Context, cfg *config.ServerArg, db *sql.DB) {
 			panic(err)
 		}
 
-		strg, err = decorator.NewStoreWithAsyncFile(ctx, storage.NewMemStorage(), time.Duration(cfg.Interval)*time.Second, writer)
+		strg, err = decorator.NewStoreWithAsyncFile(shutdownCtx, storage.NewMemStorage(), time.Duration(cfg.Interval)*time.Second, writer)
 		if err != nil {
 			panic(err)
 		}
@@ -54,21 +54,21 @@ func ConfigureServer(ctx context.Context, cfg *config.ServerArg, db *sql.DB) {
 
 		logger.Log.Info("Use mem storage")
 	}
-	createServer(service.NewMetricsService(strg), healthService, cfg.Host)
+	createServer(shutdownCtx, service.NewMetricsService(strg), healthService, cfg.Host)
 
 }
 
-func createServer(metricsService *service.MetricsService, healthService handler.HealthChecker, host string) {
+func createServer(ctx context.Context, metricsService *service.MetricsService, healthService handler.HealthChecker, host string) {
 	r := chi.NewRouter()
 	r.With(middleware.LoggingMw, middleware.GzipMW).Route("/", func(r chi.Router) {
-		r.Get("/", handler.GetAllMetricsHandler(metricsService))
-		r.With(middleware.ValidationURLRqMw).Post("/update/{type}/{name}/{value}", handler.MetricsHandler(metricsService))
-		r.Post("/update/", handler.JSONUpdateMetricHandler(metricsService))
-		r.Post("/updates/", handler.JSONUpdateMetricsHandler(metricsService))
-		r.Get("/value/{type}/{name}", handler.GetMetricHandler(metricsService))
-		r.Post("/value/", handler.GetJSONMetricHandler(metricsService))
+		r.Get("/", handler.GetAllMetricsHandler(ctx, metricsService))
+		r.With(middleware.ValidationURLRqMw).Post("/update/{type}/{name}/{value}", handler.MetricsHandler(ctx, metricsService))
+		r.Post("/update/", handler.JSONUpdateMetricHandler(ctx, metricsService))
+		r.Post("/updates/", handler.JSONUpdateMetricsHandler(ctx, metricsService))
+		r.Get("/value/{type}/{name}", handler.GetMetricHandler(ctx, metricsService))
+		r.Post("/value/", handler.GetJSONMetricHandler(ctx, metricsService))
 		if healthService != nil {
-			r.Get("/ping", handler.HealthHandler(context.TODO(), healthService))
+			r.Get("/ping", handler.HealthHandler(ctx, healthService))
 		}
 	})
 

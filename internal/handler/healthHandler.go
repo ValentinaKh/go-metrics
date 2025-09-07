@@ -5,6 +5,7 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"go.uber.org/zap"
 	"net/http"
+	"time"
 )
 
 type HealthChecker interface {
@@ -13,8 +14,11 @@ type HealthChecker interface {
 
 func HealthHandler(ctx context.Context, h HealthChecker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		timeout, cancel := context.WithTimeout(ctx, 1*time.Second)
+		defer cancel()
+
 		w.Header().Set("Content-Type", "text/html")
-		err := h.CheckDB(ctx)
+		err := h.CheckDB(timeout)
 		if err != nil {
 			logger.Log.Error("ping error", zap.Error(err))
 			w.WriteHeader(http.StatusInternalServerError)
