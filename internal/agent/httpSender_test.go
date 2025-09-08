@@ -3,6 +3,8 @@ package agent
 import (
 	"bytes"
 	"compress/gzip"
+	"github.com/ValentinaKh/go-metrics/internal/apperror"
+	"github.com/ValentinaKh/go-metrics/internal/retry"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -10,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestHTTPSender_Send_Success(t *testing.T) {
@@ -40,7 +43,10 @@ func TestHTTPSender_Send_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	sender := &HTTPSender{client: resty.New(), url: server.URL}
+	sender := &HTTPSender{client: resty.New(), url: server.URL, retrier: retry.NewRetrier(
+		retry.NewClassifierRetryPolicy(apperror.NewNetworkErrorClassifier(), 1),
+		retry.NewStaticDelayStrategy([]time.Duration{1}),
+		&retry.SleepTimeProvider{})}
 
 	err := sender.Send([]byte(expected))
 
@@ -48,7 +54,10 @@ func TestHTTPSender_Send_Success(t *testing.T) {
 }
 
 func TestHTTPSender_Send_InvalidURL(t *testing.T) {
-	sender := &HTTPSender{client: resty.New(), url: "://invalid-url"}
+	sender := &HTTPSender{client: resty.New(), url: "://invalid-url", retrier: retry.NewRetrier(
+		retry.NewClassifierRetryPolicy(apperror.NewNetworkErrorClassifier(), 1),
+		retry.NewStaticDelayStrategy([]time.Duration{1}),
+		&retry.SleepTimeProvider{})}
 
 	err := sender.Send([]byte(`{}`))
 

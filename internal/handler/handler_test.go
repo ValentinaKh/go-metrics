@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/go-chi/chi/v5"
@@ -19,19 +20,23 @@ type MockMetricsService struct {
 	GetAllMetricsFunc func() map[string]string
 }
 
-func (m *MockMetricsService) UpdateMetric(metric models.Metrics) error {
+func (m *MockMetricsService) UpdateMetric(_ context.Context, metric models.Metrics) error {
 	if m.HandleFunc != nil {
 		return m.HandleFunc(metric)
 	}
 	return nil
 }
 
-func (m *MockMetricsService) GetMetric(metric models.Metrics) (*models.Metrics, error) {
+func (m *MockMetricsService) GetMetric(_ context.Context, metric models.Metrics) (*models.Metrics, error) {
 	return m.GetMetricFunc(metric)
 }
 
-func (m *MockMetricsService) GetAllMetrics() map[string]string {
-	return m.GetAllMetricsFunc()
+func (m *MockMetricsService) GetAllMetrics(_ context.Context) (map[string]string, error) {
+	return m.GetAllMetricsFunc(), nil
+}
+
+func (m *MockMetricsService) UpdateMetrics(_ context.Context, metrics []models.Metrics) error {
+	return nil
 }
 
 func TestMetricsHandler(t *testing.T) {
@@ -93,7 +98,7 @@ func TestMetricsHandler(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			handler := MetricsHandler(test.args.service)
+			handler := MetricsHandler(context.TODO(), test.args.service)
 			request := httptest.NewRequest(http.MethodPost, test.args.url, nil)
 			w := httptest.NewRecorder()
 
@@ -166,7 +171,7 @@ func Test_GetMetricHandler(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			handler := GetMetricHandler(test.args.service)
+			handler := GetMetricHandler(context.TODO(), test.args.service)
 			r := chi.NewRouter()
 			r.Get("/value/{type}/{name}", handler)
 			server := httptest.NewServer(r)
@@ -229,7 +234,7 @@ func Test_GetAllMetricsHandler(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			handler := GetAllMetricsHandler(test.args.service)
+			handler := GetAllMetricsHandler(context.TODO(), test.args.service)
 			r := chi.NewRouter()
 			r.Get("/", handler)
 			server := httptest.NewServer(r)
@@ -249,7 +254,7 @@ func Test_GetAllMetricsHandler(t *testing.T) {
 	}
 }
 
-func TestJsonUpdateMetricsHandler(t *testing.T) {
+func TestJsonUpdateMetricHandler(t *testing.T) {
 	type args struct {
 		service Service
 		json    string
@@ -312,7 +317,7 @@ func TestJsonUpdateMetricsHandler(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			handler := JSONUpdateMetricsHandler(test.args.service)
+			handler := JSONUpdateMetricHandler(context.TODO(), test.args.service)
 			request := httptest.NewRequest(http.MethodPost, "/update", bytes.NewBufferString(test.args.json))
 			w := httptest.NewRecorder()
 
@@ -401,7 +406,7 @@ func Test_GetJsonMetricHandler(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			handler := GetJSONMetricHandler(test.args.service)
+			handler := GetJSONMetricHandler(context.TODO(), test.args.service)
 			request := httptest.NewRequest(http.MethodPost, "/value", bytes.NewBufferString(test.args.json))
 			w := httptest.NewRecorder()
 
