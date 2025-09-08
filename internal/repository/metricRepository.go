@@ -4,26 +4,25 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/ValentinaKh/go-metrics/internal/apperror"
-	"github.com/ValentinaKh/go-metrics/internal/config"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
+	"github.com/ValentinaKh/go-metrics/internal/retry"
 	"sort"
 )
 
 type MetricsRepository struct {
-	db  *sql.DB
-	cfg config.RetryConfig
+	db      *sql.DB
+	retrier *retry.Retrier
 }
 
-func NewMetricsRepository(db *sql.DB, cfg config.RetryConfig) *MetricsRepository {
+func NewMetricsRepository(db *sql.DB, retrier *retry.Retrier) *MetricsRepository {
 	return &MetricsRepository{
-		db:  db,
-		cfg: cfg,
+		db:      db,
+		retrier: retrier,
 	}
 }
 
 func (r *MetricsRepository) UpdateMetric(ctx context.Context, value models.Metrics) error {
-	_, err := apperror.DoWithRetry(ctx, apperror.NewPostgresErrorClassifier(), func() (struct{}, error) {
+	_, err := retry.DoWithRetry(ctx, r.retrier, func() (any, error) {
 		switch value.MType {
 		case models.Counter:
 			_, err := r.db.ExecContext(ctx, "INSERT INTO metrics (name, type_metrics, delta) VALUES ($1, $2, $3) "+
@@ -46,12 +45,12 @@ func (r *MetricsRepository) UpdateMetric(ctx context.Context, value models.Metri
 		}
 		return struct{}{}, nil
 
-	}, r.cfg)
+	})
 	return err
 }
 
 func (r *MetricsRepository) GetAllMetrics(ctx context.Context) (map[string]*models.Metrics, error) {
-	response, err := apperror.DoWithRetry(ctx, apperror.NewPostgresErrorClassifier(), func() (map[string]*models.Metrics, error) {
+	response, err := retry.DoWithRetry(ctx, r.retrier, func() (map[string]*models.Metrics, error) {
 		metrics := make(map[string]*models.Metrics)
 
 		rows, err := r.db.QueryContext(ctx, "SELECT  \"name\", type_metrics, delta, \"value\" FROM metrics")
@@ -74,7 +73,7 @@ func (r *MetricsRepository) GetAllMetrics(ctx context.Context) (map[string]*mode
 			return nil, fmt.Errorf("ошибка при получении данных: %w", err)
 		}
 		return metrics, nil
-	}, r.cfg)
+	})
 	return response, err
 }
 
@@ -82,7 +81,7 @@ func (r *MetricsRepository) UpdateMetrics(ctx context.Context, values []models.M
 	sort.Slice(values, func(i, j int) bool {
 		return values[i].ID < values[j].ID
 	})
-	_, err := apperror.DoWithRetry(ctx, apperror.NewPostgresErrorClassifier(), func() (struct{}, error) {
+	_, err := retry.DoWithRetry(ctx, r.retrier, func() (struct{}, error) {
 		tx, err := r.db.BeginTx(ctx, nil)
 		if err != nil {
 			return struct{}{}, fmt.Errorf("не удалось создать транзакцию: %w", err)
@@ -113,7 +112,7 @@ func (r *MetricsRepository) UpdateMetrics(ctx context.Context, values []models.M
 			return struct{}{}, fmt.Errorf("не удалось завершить запрос: %w", err)
 		}
 		return struct{}{}, nil
-	}, r.cfg)
+	})
 	return err
 }
 

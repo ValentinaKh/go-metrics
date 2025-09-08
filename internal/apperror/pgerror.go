@@ -1,11 +1,7 @@
 package apperror
 
 import (
-	"context"
 	"errors"
-	"github.com/ValentinaKh/go-metrics/internal/config"
-	"time"
-
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -95,34 +91,4 @@ func ClassifyPgError(pgErr *pgconn.PgError) ErrorClassification {
 
 	// По умолчанию считаем ошибку неповторяемой
 	return NonRetriable
-}
-
-// DoWithRetry выполняет повторный вызов функции в зависимости от типа ошибки.
-// Конфиг повторов должен быть проверен на корректность до передачи в функцию
-func DoWithRetry[T any](ctx context.Context, classifier ErrorClassifier, fn func() (T, error), cfg config.RetryConfig) (T, error) {
-	var empty T
-	attempts := cfg.MaxAttempts
-
-	var lastErr error
-	for i := 0; i <= attempts; i++ {
-		result, err := fn()
-		if err == nil {
-			return result, nil
-		}
-
-		if ctx.Err() != nil {
-			return empty, ctx.Err()
-		}
-		lastErr = err
-
-		classification := classifier.Classify(lastErr)
-		if classification == NonRetriable {
-			return empty, lastErr
-		}
-
-		if i < attempts {
-			time.Sleep(cfg.Delays[i])
-		}
-	}
-	return empty, lastErr
 }

@@ -3,12 +3,14 @@ package server
 import (
 	"context"
 	"database/sql"
+	"github.com/ValentinaKh/go-metrics/internal/apperror"
 	"github.com/ValentinaKh/go-metrics/internal/config"
 	"github.com/ValentinaKh/go-metrics/internal/fileworker"
 	"github.com/ValentinaKh/go-metrics/internal/handler"
 	"github.com/ValentinaKh/go-metrics/internal/handler/middleware"
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"github.com/ValentinaKh/go-metrics/internal/repository"
+	"github.com/ValentinaKh/go-metrics/internal/retry"
 	"github.com/ValentinaKh/go-metrics/internal/service"
 	"github.com/ValentinaKh/go-metrics/internal/storage"
 	"github.com/ValentinaKh/go-metrics/internal/storage/decorator"
@@ -25,10 +27,21 @@ func ConfigureServer(shutdownCtx context.Context, cfg *config.ServerArg, db *sql
 		repository.InitTables(shutdownCtx, db)
 
 		healthService = service.NewHealthService(repository.NewHealthRepository(db))
-		strg = repository.NewMetricsRepository(db, config.RetryConfig{
+
+		retryConfig := config.RetryConfig{
 			MaxAttempts: 3,
 			Delays:      []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second},
-		})
+		}
+		err := retryConfig.Validate()
+		if err != nil {
+			panic(err)
+		}
+
+		strg = repository.NewMetricsRepository(db,
+			retry.NewRetrier(
+				retry.NewClassifierRetryPolicy(apperror.NewPostgresErrorClassifier(), retryConfig.MaxAttempts),
+				retry.NewStaticDelayStrategy(retryConfig.Delays),
+				&retry.SleepTimeProvider{}))
 
 		logger.Log.Info("Use database storage")
 	} else if cfg.File != "" {
