@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"bytes"
 	"fmt"
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,20 +14,20 @@ import (
 )
 
 type MockMetricsService struct {
-	HandleFunc        func(metricType, name, value string) error
-	GetMetricFunc     func(name string) (string, bool)
+	HandleFunc        func(metric models.Metrics) error
+	GetMetricFunc     func(metric models.Metrics) (*models.Metrics, error)
 	GetAllMetricsFunc func() map[string]string
 }
 
-func (m *MockMetricsService) Handle(metricType, name, value string) error {
+func (m *MockMetricsService) UpdateMetric(metric models.Metrics) error {
 	if m.HandleFunc != nil {
-		return m.HandleFunc(metricType, name, value)
+		return m.HandleFunc(metric)
 	}
 	return nil
 }
 
-func (m *MockMetricsService) GetMetric(name string) (string, bool) {
-	return m.GetMetricFunc(name)
+func (m *MockMetricsService) GetMetric(metric models.Metrics) (*models.Metrics, error) {
+	return m.GetMetricFunc(metric)
 }
 
 func (m *MockMetricsService) GetAllMetrics() map[string]string {
@@ -35,6 +37,7 @@ func (m *MockMetricsService) GetAllMetrics() map[string]string {
 func TestMetricsHandler(t *testing.T) {
 	type args struct {
 		service Service
+		url     string
 	}
 	type want struct {
 		code     int
@@ -47,11 +50,12 @@ func TestMetricsHandler(t *testing.T) {
 	}{
 		{
 			name: "positive test",
-			args: args{&MockMetricsService{
-				HandleFunc: func(metricType, name, value string) error {
+			args: args{service: &MockMetricsService{
+				HandleFunc: func(metric models.Metrics) error {
 					return nil
 				},
 			},
+				url: "/update/gauge/cpu_load/0.85",
 			},
 			want: want{
 				code:     200,
@@ -59,26 +63,44 @@ func TestMetricsHandler(t *testing.T) {
 			},
 		},
 		{
-			name: "negative test",
-			args: args{&MockMetricsService{
-				HandleFunc: func(metricType, name, value string) error {
-					return fmt.Errorf("test error")
+			name: "unknown metric",
+			args: args{service: &MockMetricsService{
+				HandleFunc: func(metric models.Metrics) error {
+					return nil
 				},
 			},
+				url: "/update/unknown/cpu_load/0.85",
 			},
 			want: want{
 				code:     400,
-				response: "test error\n",
+				response: "неизвестный тип метрики unknown\n",
+			},
+		},
+		{
+			name: "not found",
+			args: args{service: &MockMetricsService{
+				HandleFunc: func(metric models.Metrics) error {
+					return fmt.Errorf("not found")
+				},
+			},
+				url: "/update/counter/cpu/1",
+			},
+			want: want{
+				code:     400,
+				response: "not found\n",
 			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			handler := MetricsHandler(test.args.service)
-			request := httptest.NewRequest(http.MethodPost, "/test", nil)
-
+			request := httptest.NewRequest(http.MethodPost, test.args.url, nil)
 			w := httptest.NewRecorder()
-			handler(w, request)
+
+			r := chi.NewRouter()
+			r.Post("/update/{type}/{name}/{value}", handler)
+
+			r.ServeHTTP(w, request)
 
 			res := w.Result()
 
@@ -95,6 +117,7 @@ func TestMetricsHandler(t *testing.T) {
 }
 
 func Test_GetMetricHandler(t *testing.T) {
+	var res int64 = 500
 	type args struct {
 		service Service
 	}
@@ -110,8 +133,14 @@ func Test_GetMetricHandler(t *testing.T) {
 		{
 			name: "positive test",
 			args: args{&MockMetricsService{
-				GetMetricFunc: func(name string) (string, bool) {
-					return "500", true
+				GetMetricFunc: func(metric models.Metrics) (*models.Metrics, error) {
+					return &models.Metrics{
+						ID:    metric.ID,
+						MType: metric.MType,
+						Delta: &res,
+						Value: metric.Value,
+						Hash:  "",
+					}, nil
 				},
 			},
 			},
@@ -123,14 +152,14 @@ func Test_GetMetricHandler(t *testing.T) {
 		{
 			name: "not found",
 			args: args{&MockMetricsService{
-				GetMetricFunc: func(name string) (string, bool) {
-					return "", false
+				GetMetricFunc: func(metric models.Metrics) (*models.Metrics, error) {
+					return nil, fmt.Errorf("метрика не найдена")
 				},
 			},
 			},
 			want: want{
 				code:     404,
-				response: "Метрика не найдена\n",
+				response: "метрика не найдена\n",
 			},
 		},
 	}
@@ -216,6 +245,182 @@ func Test_GetAllMetricsHandler(t *testing.T) {
 			data, _ := io.ReadAll(body)
 
 			assert.Equal(t, test.want.response, string(data))
+		})
+	}
+}
+
+func TestJsonUpdateMetricsHandler(t *testing.T) {
+	type args struct {
+		service Service
+		json    string
+	}
+	type want struct {
+		code int
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "positive test",
+			args: args{service: &MockMetricsService{
+				HandleFunc: func(metric models.Metrics) error {
+					return nil
+				},
+			},
+				json: `{"id": "LastGC","type": "gauge","value": 1744184459}`,
+			},
+			want: want{
+				code: 200,
+			},
+		},
+		{
+			name: "decode error",
+			args: args{service: &MockMetricsService{
+				HandleFunc: func(metric models.Metrics) error {
+					return nil
+				},
+			},
+				json: `{
+  						"id": "LastGC",
+  						"type": "gauge",
+  						"value": 1744184459
+					`,
+			},
+			want: want{
+				code: 500,
+			},
+		},
+		{
+			name: "not found",
+			args: args{service: &MockMetricsService{
+				HandleFunc: func(metric models.Metrics) error {
+					return fmt.Errorf("not found")
+				},
+			},
+				json: `{
+  						"id": "LastGC",
+  						"type": "gauge",
+  						"value": 1744184459
+					}`,
+			},
+			want: want{
+				code: 400,
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			handler := JSONUpdateMetricsHandler(test.args.service)
+			request := httptest.NewRequest(http.MethodPost, "/update", bytes.NewBufferString(test.args.json))
+			w := httptest.NewRecorder()
+
+			r := chi.NewRouter()
+			r.Post("/update", handler)
+
+			r.ServeHTTP(w, request)
+
+			res := w.Result()
+			defer res.Body.Close()
+
+			assert.Equal(t, test.want.code, res.StatusCode)
+		})
+	}
+}
+
+func Test_GetJsonMetricHandler(t *testing.T) {
+	type args struct {
+		service Service
+		json    string
+	}
+	type want struct {
+		code     int
+		response string
+	}
+	tests := []struct {
+		name string
+		args args
+		want want
+	}{
+		{
+			name: "positive test",
+			args: args{service: &MockMetricsService{
+				GetMetricFunc: func(metric models.Metrics) (*models.Metrics, error) {
+					return &models.Metrics{
+						ID:    metric.ID,
+						MType: metric.MType,
+						Delta: metric.Delta,
+						Value: metric.Value,
+						Hash:  "",
+					}, nil
+				},
+			},
+				json: `{"id": "LastGC","type": "gauge","value": 1744184459}`,
+			},
+			want: want{
+				code:     200,
+				response: `{"id": "LastGC","type": "gauge","value": 1744184459}`,
+			},
+		},
+		{
+			name: "decode error",
+			args: args{service: &MockMetricsService{
+				GetMetricFunc: func(metric models.Metrics) (*models.Metrics, error) {
+					return &models.Metrics{
+						ID:    metric.ID,
+						MType: metric.MType,
+						Delta: metric.Delta,
+						Value: metric.Value,
+						Hash:  "",
+					}, nil
+				},
+			},
+				json: `{"id": "LastGC","type": "gauge","value": 1744184459`,
+			},
+			want: want{
+				code:     500,
+				response: "",
+			},
+		},
+		{
+			name: "not found",
+			args: args{service: &MockMetricsService{
+				GetMetricFunc: func(metric models.Metrics) (*models.Metrics, error) {
+					return nil, fmt.Errorf("метрика не найдена")
+				},
+			},
+				json: `{"id": "LastGC","type": "gauge","value": 1744184459}`,
+			},
+			want: want{
+				code:     404,
+				response: "",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			handler := GetJSONMetricHandler(test.args.service)
+			request := httptest.NewRequest(http.MethodPost, "/value", bytes.NewBufferString(test.args.json))
+			w := httptest.NewRecorder()
+
+			r := chi.NewRouter()
+			r.Post("/value", handler)
+
+			r.ServeHTTP(w, request)
+
+			res := w.Result()
+
+			assert.Equal(t, test.want.code, res.StatusCode)
+
+			defer res.Body.Close()
+			resBody, err := io.ReadAll(res.Body)
+
+			require.NoError(t, err)
+			if len(resBody) > 0 {
+				assert.JSONEq(t, test.want.response, string(resBody))
+			}
 		})
 	}
 }

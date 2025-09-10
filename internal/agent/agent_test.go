@@ -14,11 +14,11 @@ type MockSender struct {
 	Err           error
 }
 
-func (m *MockSender) Send(url string) error {
+func (m *MockSender) Send(data []byte) error {
 	if m.Err != nil {
 		return m.Err
 	}
-	m.CalledWithURL = append(m.CalledWithURL, url)
+	m.CalledWithURL = append(m.CalledWithURL, string(data))
 	return nil
 }
 
@@ -26,7 +26,7 @@ type MockStorage struct {
 	storage map[string]*models.Metrics
 }
 
-func (s *MockStorage) UpdateMetric(_ string, _ models.Metrics) error {
+func (s *MockStorage) UpdateMetric(_ models.Metrics) error {
 	return nil
 }
 
@@ -68,7 +68,7 @@ func Test_metricAgent_send(t *testing.T) {
 			},
 			reportInterval: 0,
 		},
-		wantURL: []string{"http://localhost:8080/update/counter/intMetric/5", "http://localhost:8080/update/gauge/floatMetric/5.2"},
+		wantURL: []string{`{"id":"","type":"gauge","value":5.2}`, `{"id":"","type":"counter","delta":5}`},
 	}, {
 		name: "Negative",
 		fields: fields{
@@ -98,7 +98,6 @@ func Test_metricAgent_send(t *testing.T) {
 				s:              tt.fields.s,
 				h:              tt.fields.h,
 				reportInterval: tt.fields.reportInterval,
-				host:           "localhost:8080",
 			}
 			err := s.send()
 

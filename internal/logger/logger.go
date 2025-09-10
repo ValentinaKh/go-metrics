@@ -1,9 +1,13 @@
 package logger
 
 import (
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"log/slog"
 	"os"
 )
+
+var Log *zap.Logger = zap.NewNop()
 
 // Setup настраивает логгер и устанавливает его как глобальный. Параметр level типа string для возможности передать
 // уровень логирования через флаг или env
@@ -25,4 +29,25 @@ func Setup(level string) {
 	})
 
 	slog.SetDefault(slog.New(handler))
+}
+
+// InitializeZapLogger настраивает zap логгер
+func InitializeZapLogger(level string) error {
+	lvl, err := zap.ParseAtomicLevel(level)
+	if err != nil {
+		return err
+	}
+	cfg := zap.NewProductionConfig()
+	// Меняем формат времени
+	cfg.EncoderConfig.TimeKey = "time"
+	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	cfg.Level = lvl
+	zl, err := cfg.Build()
+	if err != nil {
+		return err
+	}
+
+	Log = zl
+	return nil
 }

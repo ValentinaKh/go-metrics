@@ -6,7 +6,6 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"github.com/ValentinaKh/go-metrics/internal/service"
 	"github.com/ValentinaKh/go-metrics/internal/storage"
-	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,9 +16,15 @@ func main() {
 }
 
 func run() {
-	logger.Setup("info")
+	err := logger.InitializeZapLogger("info")
+	if err != nil {
+		panic(err)
+	}
+	defer logger.Log.Sync()
 
-	host, reportInterval, pollInterval := parseFlags()
+	logger.Log.Info("Приложение запущено.")
+
+	host, reportInterval, pollInterval := mustParseArgs()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -27,7 +32,7 @@ func run() {
 	shutdownCtx, cancel := context.WithCancel(context.Background())
 
 	st := storage.NewMemStorage()
-	metricAgent := agent.NewMetricAgent(st, agent.NewPostSender(), reportInterval, host)
+	metricAgent := agent.NewMetricAgent(st, agent.NewPostSender(host), reportInterval)
 	collector := service.NewMetricCollector(st, pollInterval)
 
 	go collector.Collect(shutdownCtx)
@@ -35,5 +40,5 @@ func run() {
 
 	<-ctx.Done()
 	cancel()
-	slog.Info("Приложение завершено.")
+	logger.Log.Info("Приложение завершено.")
 }

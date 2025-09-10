@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/ValentinaKh/go-metrics/internal/logger"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"log/slog"
 	"math/rand"
 	"runtime"
 	"time"
@@ -98,13 +98,13 @@ func (c *metricCollector) Collect(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Info("close Collector")
+			logger.Log.Info("close Collector")
 			return
 		default:
 			err := c.collectMetric()
 
 			if err != nil {
-				slog.Error(err.Error())
+				logger.Log.Error(err.Error())
 			}
 
 			time.Sleep(c.pollInterval)
@@ -114,7 +114,8 @@ func (c *metricCollector) Collect(ctx context.Context) {
 
 func (c *metricCollector) addMetric(name string, value float64) error {
 	tv := value
-	return c.s.UpdateMetric(name, models.Metrics{
+	return c.s.UpdateMetric(models.Metrics{
+		ID:    name,
 		MType: models.Gauge,
 		Value: &tv,
 	})
@@ -133,7 +134,8 @@ func (c *metricCollector) collectMetric() error {
 		count++
 	}
 
-	if err := c.s.UpdateMetric(pollCount, models.Metrics{
+	if err := c.s.UpdateMetric(models.Metrics{
+		ID:    pollCount,
 		MType: models.Counter,
 		Delta: &count,
 	}); err != nil {
