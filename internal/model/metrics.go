@@ -1,5 +1,10 @@
 package models
 
+import (
+	"fmt"
+	"github.com/ValentinaKh/go-metrics/internal/utils"
+)
+
 const (
 	Counter = "counter"
 	Gauge   = "gauge"
@@ -16,4 +21,8 @@ type Metrics struct {
 	Delta *int64   `json:"delta,omitempty"`
 	Value *float64 `json:"value,omitempty"`
 	Hash  string   `json:"hash,omitempty"`
+}
+
+func (m *Metrics) String() string {
+	return fmt.Sprintf("name: %s, type: %s, delta: %s, value: %s", m.ID, m.MType, utils.ToString(m.Delta), utils.ToString(m.Value))
 }

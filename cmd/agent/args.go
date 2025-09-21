@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"os"
+	"github.com/ValentinaKh/go-metrics/internal/utils"
 	"strconv"
 	"time"
 )
@@ -17,25 +17,9 @@ func mustParseArgs() (string, time.Duration, time.Duration) {
 
 	flag.Parse()
 
-	if r, ok := os.LookupEnv("ADDRESS"); ok {
-		host = r
-	}
+	host = utils.LoadEnvVar("ADDRESS", host, func(s string) (string, error) { return s, nil })
+	reportInterval = utils.LoadEnvVar("REPORT_INTERVAL", reportInterval, func(s string) (uint64, error) { return strconv.ParseUint(s, 10, 64) })
+	pollInterval = utils.LoadEnvVar("POLL_INTERVAL", pollInterval, func(s string) (uint64, error) { return strconv.ParseUint(s, 10, 64) })
 
-	if r, ok := os.LookupEnv("REPORT_INTERVAL"); ok {
-		res, err := strconv.ParseUint(r, 10, 64)
-		if err != nil {
-			panic(err)
-		}
-		reportInterval = res
-	}
-
-	if r, ok := os.LookupEnv("POLL_INTERVAL"); ok {
-		res, err := strconv.ParseUint(r, 10, 64)
-		if err != nil {
-			panic(err)
-		}
-		pollInterval = res
-	}
-
-	return host, time.Duration(reportInterval) * time.Second, time.Duration(pollInterval)
+	return host, time.Duration(reportInterval) * time.Second, time.Duration(pollInterval) * time.Second
 }

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"strconv"
@@ -8,10 +9,14 @@ import (
 
 type Storage interface {
 	// UpdateMetric обновляем метрику в хранилище
-	UpdateMetric(value models.Metrics) error
+	UpdateMetric(ctx context.Context, value models.Metrics) error
+	UpdateMetrics(ctx context.Context, values []models.Metrics) error
+	GetAllMetrics(ctx context.Context) (map[string]*models.Metrics, error)
+}
+
+type TempStorage interface {
 	// GetAndClear овозвращаем то, что находится в хранилище и очищаем хранилище
 	GetAndClear() map[string]*models.Metrics
-	GetAllMetrics() map[string]*models.Metrics
 }
 
 type MetricsService struct {
@@ -22,12 +27,15 @@ func NewMetricsService(storage Storage) *MetricsService {
 	return &MetricsService{strg: storage}
 }
 
-func (s MetricsService) UpdateMetric(metric models.Metrics) error {
-	return s.strg.UpdateMetric(metric)
+func (s MetricsService) UpdateMetric(ctx context.Context, metric models.Metrics) error {
+	return s.strg.UpdateMetric(ctx, metric)
 }
 
-func (s MetricsService) GetMetric(m models.Metrics) (*models.Metrics, error) {
-	metrics := s.strg.GetAllMetrics()
+func (s MetricsService) GetMetric(ctx context.Context, m models.Metrics) (*models.Metrics, error) {
+	metrics, err := s.strg.GetAllMetrics(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка получения метрик %w", err)
+	}
 	metric, ok := metrics[m.ID]
 	if !ok {
 		return nil, fmt.Errorf("метрика не найдена")
@@ -38,9 +46,14 @@ func (s MetricsService) GetMetric(m models.Metrics) (*models.Metrics, error) {
 	return metric, nil
 }
 
-func (s MetricsService) GetAllMetrics() map[string]string {
+func (s MetricsService) GetAllMetrics(ctx context.Context) (map[string]string, error) {
 	result := make(map[string]string)
-	for name, metric := range s.strg.GetAllMetrics() {
+	metrics, err := s.strg.GetAllMetrics(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка получения метрик %w", err)
+	}
+
+	for name, metric := range metrics {
 		var value string
 		switch metric.MType {
 		case models.Counter:
@@ -50,5 +63,9 @@ func (s MetricsService) GetAllMetrics() map[string]string {
 		}
 		result[name] = value
 	}
-	return result
+	return result, nil
+}
+
+func (s MetricsService) UpdateMetrics(ctx context.Context, metrics []models.Metrics) error {
+	return s.strg.UpdateMetrics(ctx, metrics)
 }

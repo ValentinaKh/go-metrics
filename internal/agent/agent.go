@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/ValentinaKh/go-metrics/internal/logger"
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/ValentinaKh/go-metrics/internal/service"
 	"time"
 )
@@ -13,12 +14,12 @@ type Agent interface {
 }
 
 type MetricAgent struct {
-	s              service.Storage
+	s              service.TempStorage
 	h              Sender
 	reportInterval time.Duration
 }
 
-func NewMetricAgent(s service.Storage, h Sender, reportInterval time.Duration) *MetricAgent {
+func NewMetricAgent(s service.TempStorage, h Sender, reportInterval time.Duration) *MetricAgent {
 	return &MetricAgent{s, h, reportInterval}
 }
 
@@ -40,15 +41,19 @@ func (s *MetricAgent) Push(ctx context.Context) {
 
 func (s *MetricAgent) send() error {
 	metrics := s.s.GetAndClear()
-	for _, metric := range metrics {
-		rs, err := json.Marshal(metric)
-		if err != nil {
-			return err
-		}
-
-		if err := s.h.Send(rs); err != nil {
-			return err
-		}
+	if len(metrics) == 0 {
+		return nil
+	}
+	request := make([]*models.Metrics, 0)
+	for _, m := range metrics {
+		request = append(request, m)
+	}
+	rs, err := json.Marshal(request)
+	if err != nil {
+		return err
+	}
+	if err := s.h.Send(rs); err != nil {
+		return err
 	}
 	return nil
 }
