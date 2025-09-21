@@ -2,24 +2,25 @@ package main
 
 import (
 	"flag"
+	"github.com/ValentinaKh/go-metrics/internal/config"
 	"github.com/ValentinaKh/go-metrics/internal/utils"
 	"strconv"
-	"time"
 )
 
-func mustParseArgs() (string, time.Duration, time.Duration) {
-	var host string
-	var reportInterval, pollInterval uint64
+func mustParseArgs() *config.AgentArg {
+	var cfg config.AgentArg
 
-	flag.StringVar(&host, "a", "localhost:8080", "address for endpoint")
-	flag.Uint64Var(&reportInterval, "r", 10, "reportInterval")
-	flag.Uint64Var(&pollInterval, "p", 2, "pollInterval")
+	flag.StringVar(&cfg.Host, "a", "localhost:8080", "address for endpoint")
+	flag.StringVar(&cfg.Key, "k", "", "key")
+	flag.Uint64Var(&cfg.ReportInterval, "r", 10, "reportInterval")
+	flag.Uint64Var(&cfg.PollInterval, "p", 2, "pollInterval")
 
 	flag.Parse()
 
-	host = utils.LoadEnvVar("ADDRESS", host, func(s string) (string, error) { return s, nil })
-	reportInterval = utils.LoadEnvVar("REPORT_INTERVAL", reportInterval, func(s string) (uint64, error) { return strconv.ParseUint(s, 10, 64) })
-	pollInterval = utils.LoadEnvVar("POLL_INTERVAL", pollInterval, func(s string) (uint64, error) { return strconv.ParseUint(s, 10, 64) })
+	cfg.Host = utils.LoadEnvVar("ADDRESS", cfg.Host, func(s string) (string, error) { return s, nil })
+	cfg.Key = utils.LoadEnvVar("KEY", cfg.Key, func(s string) (string, error) { return s, nil })
+	cfg.ReportInterval = utils.LoadEnvVar("REPORT_INTERVAL", cfg.ReportInterval, func(s string) (uint64, error) { return strconv.ParseUint(s, 10, 64) })
+	cfg.PollInterval = utils.LoadEnvVar("POLL_INTERVAL", cfg.PollInterval, func(s string) (uint64, error) { return strconv.ParseUint(s, 10, 64) })
 
-	return host, time.Duration(reportInterval) * time.Second, time.Duration(pollInterval) * time.Second
+	return &cfg
 }

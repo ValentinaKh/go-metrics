@@ -6,6 +6,7 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"github.com/ValentinaKh/go-metrics/internal/repository"
 	"github.com/ValentinaKh/go-metrics/internal/server"
+	"go.uber.org/zap"
 	"os"
 	"os/signal"
 	"syscall"
@@ -29,7 +30,9 @@ func run() {
 
 	shutdownCtx, cancel := context.WithCancel(context.Background())
 
-	args := parseArgs()
+	args := mustParseArgs()
+
+	logger.Log.Info("Приложение работает с настройками", zap.Any("Настройки", args))
 
 	var db *sql.DB
 	if args.ConnStr != "" {
