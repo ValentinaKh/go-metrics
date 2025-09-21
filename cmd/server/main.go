@@ -30,7 +30,8 @@ func run() {
 
 	shutdownCtx, cancel := context.WithCancel(context.Background())
 
-	args := parseArgs()
+	args := mustParseArgs()
+
 	logger.Log.Info("Приложение работает с настройками", zap.Any("Настройки", args))
 
 	var db *sql.DB

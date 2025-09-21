@@ -29,7 +29,7 @@ func run() {
 
 	logger.Log.Info("Приложение запущено.")
 
-	args := parseArgs()
+	args := mustParseArgs()
 
 	logger.Log.Info("Приложение работает с настройками", zap.Any("Настройки", args))
 
