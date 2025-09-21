@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"fmt"
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"github.com/ValentinaKh/go-metrics/internal/retry"
+	"github.com/ValentinaKh/go-metrics/internal/utils"
 	"github.com/go-resty/resty/v2"
 	"go.uber.org/zap"
 	"net/url"
@@ -16,13 +18,14 @@ type Sender interface {
 }
 
 type HTTPSender struct {
-	client  *resty.Client
-	url     string
-	retrier *retry.Retrier
+	client    *resty.Client
+	url       string
+	retrier   *retry.Retrier
+	secureKey string
 }
 
-func NewPostSender(host string, retrier *retry.Retrier) *HTTPSender {
-	return &HTTPSender{client: resty.New(), url: buildURL(host), retrier: retrier}
+func NewPostSender(host string, retrier *retry.Retrier, secureKey string) *HTTPSender {
+	return &HTTPSender{client: resty.New(), url: buildURL(host), retrier: retrier, secureKey: secureKey}
 }
 
 func (s *HTTPSender) Send(data []byte) error {
@@ -38,10 +41,15 @@ func (s *HTTPSender) Send(data []byte) error {
 	}
 
 	response, err := retry.DoWithRetry(context.TODO(), s.retrier, func() (*resty.Response, error) {
-		return s.client.R().
-			SetHeaders(map[string]string{"Content-Type": "application/json", "Content-Encoding": "gzip"}).
-			SetBody(compressedBody.Bytes()).
-			Post(s.url)
+		body := compressedBody.Bytes()
+		prep := s.client.R().
+			SetHeaders(map[string]string{"Content-Type": "application/json", "Content-Encoding": "gzip"})
+
+		if s.secureKey != "" {
+			hash := utils.Hash(s.secureKey, body)
+			prep.SetHeader("HashSHA256", fmt.Sprintf("%x", hash))
+		}
+		return prep.SetBody(body).Post(s.url)
 	})
 	if err != nil {
 		return err

@@ -9,6 +9,7 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/retry"
 	"github.com/ValentinaKh/go-metrics/internal/service"
 	"github.com/ValentinaKh/go-metrics/internal/storage"
+	"go.uber.org/zap"
 	"os"
 	"os/signal"
 	"syscall"
@@ -28,7 +29,9 @@ func run() {
 
 	logger.Log.Info("Приложение запущено.")
 
-	host, reportInterval, pollInterval := mustParseArgs()
+	args := parseArgs()
+
+	logger.Log.Info("Приложение работает с настройками", zap.Any("Настройки", args))
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -44,12 +47,12 @@ func run() {
 	if err != nil {
 		panic(err)
 	}
-	metricAgent := agent.NewMetricAgent(st, agent.NewPostSender(host,
+	metricAgent := agent.NewMetricAgent(st, agent.NewPostSender(args.Host,
 		retry.NewRetrier(
 			retry.NewClassifierRetryPolicy(apperror.NewNetworkErrorClassifier(), retryConfig.MaxAttempts),
 			retry.NewStaticDelayStrategy(retryConfig.Delays),
-			&retry.SleepTimeProvider{})), reportInterval)
-	collector := service.NewMetricCollector(st, pollInterval)
+			&retry.SleepTimeProvider{}), args.Key), time.Duration(args.ReportInterval)*time.Second)
+	collector := service.NewMetricCollector(st, time.Duration(args.PollInterval)*time.Second)
 
 	go collector.Collect(shutdownCtx)
 	go metricAgent.Push(shutdownCtx)
