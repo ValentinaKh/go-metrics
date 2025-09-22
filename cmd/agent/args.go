@@ -14,6 +14,7 @@ func mustParseArgs() *config.AgentArg {
 	flag.StringVar(&cfg.Key, "k", "", "key")
 	flag.Uint64Var(&cfg.ReportInterval, "r", 10, "reportInterval")
 	flag.Uint64Var(&cfg.PollInterval, "p", 2, "pollInterval")
+	flag.Uint64Var(&cfg.RateLimit, "l", 2, "rateLimit")
 
 	flag.Parse()
 
@@ -21,6 +22,7 @@ func mustParseArgs() *config.AgentArg {
 	cfg.Key = utils.LoadEnvVar("KEY", cfg.Key, func(s string) (string, error) { return s, nil })
 	cfg.ReportInterval = utils.LoadEnvVar("REPORT_INTERVAL", cfg.ReportInterval, func(s string) (uint64, error) { return strconv.ParseUint(s, 10, 64) })
 	cfg.PollInterval = utils.LoadEnvVar("POLL_INTERVAL", cfg.PollInterval, func(s string) (uint64, error) { return strconv.ParseUint(s, 10, 64) })
+	cfg.RateLimit = utils.LoadEnvVar("RATE_LIMIT", cfg.RateLimit, func(s string) (uint64, error) { return strconv.ParseUint(s, 10, 64) })
 
 	return &cfg
 }

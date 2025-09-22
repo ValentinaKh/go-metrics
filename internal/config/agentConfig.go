@@ -5,4 +5,5 @@ type AgentArg struct {
 	ReportInterval uint64
 	PollInterval   uint64
 	Key            string
+	RateLimit      uint64
 }

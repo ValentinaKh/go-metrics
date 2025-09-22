@@ -13,10 +13,6 @@ import (
 	"net/url"
 )
 
-type Sender interface {
-	Send(data []byte) error
-}
-
 type HTTPSender struct {
 	client    *resty.Client
 	url       string
