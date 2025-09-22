@@ -20,8 +20,8 @@ func ConfigureAgent(shutdownCtx context.Context, cfg *config.AgentArg, rCfg *con
 
 	var wg sync.WaitGroup
 	for idx := 0; idx < int(cfg.RateLimit); idx++ {
+		wg.Add(1)
 		go func() {
-			wg.Add(1)
 			defer wg.Done()
 			NewMetricSender(NewPostSender(cfg.Host,
 				retry.NewRetrier(
@@ -38,13 +38,13 @@ func ConfigureAgent(shutdownCtx context.Context, cfg *config.AgentArg, rCfg *con
 	w := writer.NewMetricWriter(st, mChan)
 
 	//по заданию надо добавить еще одну горутину с новыми метриками
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 		runtimeCollector.Collect(shutdownCtx)
 	}()
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 		systemCollector.Collect(shutdownCtx)
 	}()
