@@ -67,13 +67,13 @@ func ConfigureServer(shutdownCtx context.Context, cfg *config.ServerArg, db *sql
 
 		logger.Log.Info("Use mem storage")
 	}
-	createServer(shutdownCtx, service.NewMetricsService(strg), healthService, cfg.Host)
+	createServer(shutdownCtx, service.NewMetricsService(strg), healthService, cfg.Host, cfg.Key)
 
 }
 
-func createServer(ctx context.Context, metricsService *service.MetricsService, healthService handler.HealthChecker, host string) {
+func createServer(ctx context.Context, metricsService *service.MetricsService, healthService handler.HealthChecker, host, key string) {
 	r := chi.NewRouter()
-	r.With(middleware.LoggingMw, middleware.GzipMW).Route("/", func(r chi.Router) {
+	r.With(middleware.LoggingMw, middleware.ValidateHashMW(key), middleware.GzipMW, middleware.HashResponseMW(key)).Route("/", func(r chi.Router) {
 		r.Get("/", handler.GetAllMetricsHandler(ctx, metricsService))
 		r.With(middleware.ValidationURLRqMw).Post("/update/{type}/{name}/{value}", handler.MetricsHandler(ctx, metricsService))
 		r.Post("/update/", handler.JSONUpdateMetricHandler(ctx, metricsService))

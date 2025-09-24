@@ -14,11 +14,6 @@ type Storage interface {
 	GetAllMetrics(ctx context.Context) (map[string]*models.Metrics, error)
 }
 
-type TempStorage interface {
-	// GetAndClear овозвращаем то, что находится в хранилище и очищаем хранилище
-	GetAndClear() map[string]*models.Metrics
-}
-
 type MetricsService struct {
 	strg Storage
 }

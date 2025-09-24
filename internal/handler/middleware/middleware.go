@@ -1,14 +1,21 @@
 package middleware
 
 import (
+	"bytes"
+	"crypto/hmac"
+	"encoding/hex"
+	"fmt"
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/ValentinaKh/go-metrics/internal/utils"
 	"go.uber.org/zap"
+	"io"
 	"net/http"
 	"strings"
 	"time"
 )
+
+const hashHeader = "HashSHA256"
 
 type (
 	responseData struct {
@@ -117,4 +124,66 @@ func GzipMW(next http.Handler) http.Handler {
 
 		next.ServeHTTP(ow, r)
 	})
+}
+
+func ValidateHashMW(secretKey string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			headerHash := r.Header.Get(hashHeader)
+			if secretKey == "" || headerHash == "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			hash, err := hex.DecodeString(headerHash)
+			if err != nil {
+				logger.Log.Error("Error decoding hash", zap.Error(err))
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				logger.Log.Error("Failed to read request body")
+				http.Error(w, "Failed to read request body", http.StatusBadRequest)
+				return
+			}
+
+			r.Body.Close()
+
+			requestHash := utils.Hash(secretKey, body)
+			if !hmac.Equal(hash, requestHash) {
+				logger.Log.Error("not expected hash", zap.String("requestHash", fmt.Sprintf("%x", requestHash)),
+					zap.String("headerHash", fmt.Sprintf("%x", hash)))
+				http.Error(w, "Invalid request hash", http.StatusBadRequest)
+				return
+			}
+			r.Body = io.NopCloser(bytes.NewBuffer(body))
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func HashResponseMW(secretKey string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if secretKey == "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			hrw := NewHashWriter(w)
+
+			next.ServeHTTP(hrw, r)
+
+			if hrw.statusCode != 0 {
+				w.WriteHeader(hrw.statusCode)
+			}
+			if len(hrw.body) > 0 {
+				hash := utils.Hash(secretKey, hrw.body)
+				w.Header().Set(hashHeader, string(hash))
+				w.Write(hrw.body)
+			}
+		})
+	}
 }

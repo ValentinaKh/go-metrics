@@ -2,58 +2,55 @@ package agent
 
 import (
 	"context"
-	"encoding/json"
-	"github.com/ValentinaKh/go-metrics/internal/logger"
+	"github.com/ValentinaKh/go-metrics/internal/apperror"
+	"github.com/ValentinaKh/go-metrics/internal/config"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"github.com/ValentinaKh/go-metrics/internal/service"
+	"github.com/ValentinaKh/go-metrics/internal/retry"
+	"github.com/ValentinaKh/go-metrics/internal/service/collector"
+	"github.com/ValentinaKh/go-metrics/internal/service/provider"
+	"github.com/ValentinaKh/go-metrics/internal/service/writer"
+	"github.com/ValentinaKh/go-metrics/internal/storage"
+	"sync"
 	"time"
 )
 
-type Agent interface {
-	Push(ctx context.Context)
-}
+func ConfigureAgent(shutdownCtx context.Context, cfg *config.AgentArg, rCfg *config.RetryConfig, mChan chan []models.Metrics) *sync.WaitGroup {
+	st := storage.NewMemStorage()
+	metricPublisher, msgCh := NewMetricsPublisher(st, time.Duration(cfg.ReportInterval)*time.Second)
 
-type MetricAgent struct {
-	s              service.TempStorage
-	h              Sender
-	reportInterval time.Duration
-}
+	var wg sync.WaitGroup
+	for idx := 0; idx < int(cfg.RateLimit); idx++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			NewMetricSender(NewPostSender(cfg.Host,
+				retry.NewRetrier(
+					retry.NewClassifierRetryPolicy(apperror.NewNetworkErrorClassifier(), rCfg.MaxAttempts),
+					retry.NewStaticDelayStrategy(rCfg.Delays),
+					&retry.SleepTimeProvider{}), cfg.Key), msgCh).
+				Push(shutdownCtx)
+		}()
+	}
 
-func NewMetricAgent(s service.TempStorage, h Sender, reportInterval time.Duration) *MetricAgent {
-	return &MetricAgent{s, h, reportInterval}
-}
+	duration := time.Duration(cfg.PollInterval)
+	runtimeCollector := collector.NewMetricCollector(provider.NewRuntimeProvider(), duration*time.Second, mChan)
+	systemCollector := collector.NewMetricCollector(provider.NewSystemProvider(), duration*time.Second, mChan)
+	w := writer.NewMetricWriter(st, mChan)
 
-func (s *MetricAgent) Push(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			logger.Log.Info("close agent")
-			return
-		default:
-			err := s.send()
-			if err != nil {
-				logger.Log.Error(err.Error())
-			}
-			time.Sleep(s.reportInterval)
-		}
-	}
-}
+	//по заданию надо добавить еще одну горутину с новыми метриками
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		runtimeCollector.Collect(shutdownCtx)
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		systemCollector.Collect(shutdownCtx)
+	}()
 
-func (s *MetricAgent) send() error {
-	metrics := s.s.GetAndClear()
-	if len(metrics) == 0 {
-		return nil
-	}
-	request := make([]*models.Metrics, 0)
-	for _, m := range metrics {
-		request = append(request, m)
-	}
-	rs, err := json.Marshal(request)
-	if err != nil {
-		return err
-	}
-	if err := s.h.Send(rs); err != nil {
-		return err
-	}
-	return nil
+	go metricPublisher.Publish(shutdownCtx)
+	go w.Write(shutdownCtx)
+
+	return &wg
 }
