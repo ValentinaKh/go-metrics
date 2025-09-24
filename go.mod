@@ -3,7 +3,6 @@ module github.com/ValentinaKh/go-metrics
 go 1.23.11
 
 require (
-	github.com/alexflint/go-arg v1.6.0
 	github.com/go-chi/chi/v5 v5.2.2
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
@@ -14,7 +13,6 @@ require (
 )
 
 require (
-	github.com/alexflint/go-scalar v1.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect

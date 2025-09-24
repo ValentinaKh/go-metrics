@@ -11,7 +11,6 @@ import (
 	"go.uber.org/zap"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 )
@@ -142,9 +141,7 @@ func ValidateHashMW(secretKey string) func(http.Handler) http.Handler {
 				return
 			}
 
-			reader := io.TeeReader(r.Body, os.Stdout)
-
-			body, err := io.ReadAll(reader)
+			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				logger.Log.Error("Failed to read request body")
 				http.Error(w, "Failed to read request body", http.StatusBadRequest)

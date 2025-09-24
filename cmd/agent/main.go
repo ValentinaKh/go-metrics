@@ -26,7 +26,7 @@ func run() {
 
 	logger.Log.Info("Приложение запущено.")
 
-	args := mustParseArgs()
+	args := config.MustParseAgentArgs()
 	retryConfig := &config.RetryConfig{
 		MaxAttempts: 3,
 		Delays:      []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second},
