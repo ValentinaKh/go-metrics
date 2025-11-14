@@ -44,9 +44,9 @@ func NewFileAuditHandler(writer fileworker.Writer) *FileAuditHandler {
 
 func (e *FileAuditHandler) update(request []models.Metrics, ip string) {
 	err := e.writer.Write(auditDto{
-		Ts:        time.Now().Unix(),
+		TS:        time.Now().Unix(),
 		Metrics:   request,
-		IpAddress: ip,
+		IPAddress: ip,
 	})
 	if err != nil {
 		logger.Log.Error(err.Error())
@@ -67,9 +67,9 @@ func NewRestAuditHandler(url string) *RestAuditHandler {
 
 func (s *RestAuditHandler) update(request []models.Metrics, ip string) {
 	rs, err := json.Marshal(auditDto{
-		Ts:        time.Now().Unix(),
+		TS:        time.Now().Unix(),
 		Metrics:   request,
-		IpAddress: ip,
+		IPAddress: ip,
 	})
 	if err != nil {
 		logger.Log.Error(err.Error())
@@ -85,7 +85,7 @@ func (s *RestAuditHandler) update(request []models.Metrics, ip string) {
 }
 
 type auditDto struct {
-	Ts        int64            `json:"ts"`
+	TS        int64            `json:"ts"`
 	Metrics   []models.Metrics `json:"metrics"`
-	IpAddress string           `json:"ip_address"`
+	IPAddress string           `json:"ip_address"`
 }
