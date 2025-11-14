@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/ValentinaKh/go-metrics/internal/audit"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -317,7 +318,7 @@ func TestJsonUpdateMetricHandler(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			handler := JSONUpdateMetricHandler(context.TODO(), test.args.service)
+			handler := JSONUpdateMetricHandler(context.TODO(), test.args.service, &audit.Auditor{})
 			request := httptest.NewRequest(http.MethodPost, "/update", bytes.NewBufferString(test.args.json))
 			w := httptest.NewRecorder()
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/ValentinaKh/go-metrics/internal/audit"
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/go-chi/chi/v5"
@@ -44,7 +45,7 @@ func MetricsHandler(ctx context.Context, service Service) http.HandlerFunc {
 	}
 }
 
-func JSONUpdateMetricHandler(ctx context.Context, service Service) http.HandlerFunc {
+func JSONUpdateMetricHandler(ctx context.Context, service Service, p audit.Publisher) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		timeout, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
@@ -66,6 +67,7 @@ func JSONUpdateMetricHandler(ctx context.Context, service Service) http.HandlerF
 		}
 
 		w.WriteHeader(http.StatusOK)
+		p.Notify([]models.Metrics{request}, r.URL.Host)
 	}
 }
 
@@ -156,7 +158,7 @@ func GetAllMetricsHandler(ctx context.Context, service Service) http.HandlerFunc
 	}
 }
 
-func JSONUpdateMetricsHandler(ctx context.Context, service Service) http.HandlerFunc {
+func JSONUpdateMetricsHandler(ctx context.Context, service Service, p audit.Publisher) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		timeout, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
@@ -178,6 +180,7 @@ func JSONUpdateMetricsHandler(ctx context.Context, service Service) http.Handler
 		}
 
 		w.WriteHeader(http.StatusOK)
+		p.Notify(request, r.URL.Host)
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"github.com/ValentinaKh/go-metrics/internal/apperror"
+	"github.com/ValentinaKh/go-metrics/internal/audit"
 	"github.com/ValentinaKh/go-metrics/internal/config"
 	"github.com/ValentinaKh/go-metrics/internal/fileworker"
 	"github.com/ValentinaKh/go-metrics/internal/handler"
@@ -67,17 +68,28 @@ func ConfigureServer(shutdownCtx context.Context, cfg *config.ServerArg, db *sql
 
 		logger.Log.Info("Use mem storage")
 	}
-	createServer(shutdownCtx, service.NewMetricsService(strg), healthService, cfg.Host, cfg.Key)
+	auditor := audit.Auditor{}
+	if cfg.AuditFile != "" {
+		writer, err := fileworker.NewFileWriter(cfg.AuditFile)
+		if err != nil {
+			panic(err)
+		}
+		auditor.Register(audit.NewFileAuditHandler(writer))
+	}
+	if cfg.AuditURL != "" {
+		auditor.Register(audit.NewRestAuditHandler(cfg.AuditURL))
+	}
+	createServer(shutdownCtx, service.NewMetricsService(strg), healthService, cfg.Host, cfg.Key, &auditor)
 
 }
 
-func createServer(ctx context.Context, metricsService *service.MetricsService, healthService handler.HealthChecker, host, key string) {
+func createServer(ctx context.Context, metricsService *service.MetricsService, healthService handler.HealthChecker, host, key string, publisher audit.Publisher) {
 	r := chi.NewRouter()
 	r.With(middleware.LoggingMw, middleware.ValidateHashMW(key), middleware.GzipMW, middleware.HashResponseMW(key)).Route("/", func(r chi.Router) {
 		r.Get("/", handler.GetAllMetricsHandler(ctx, metricsService))
 		r.With(middleware.ValidationURLRqMw).Post("/update/{type}/{name}/{value}", handler.MetricsHandler(ctx, metricsService))
-		r.Post("/update/", handler.JSONUpdateMetricHandler(ctx, metricsService))
-		r.Post("/updates/", handler.JSONUpdateMetricsHandler(ctx, metricsService))
+		r.Post("/update/", handler.JSONUpdateMetricHandler(ctx, metricsService, publisher))
+		r.Post("/updates/", handler.JSONUpdateMetricsHandler(ctx, metricsService, publisher))
 		r.Get("/value/{type}/{name}", handler.GetMetricHandler(ctx, metricsService))
 		r.Post("/value/", handler.GetJSONMetricHandler(ctx, metricsService))
 		if healthService != nil {

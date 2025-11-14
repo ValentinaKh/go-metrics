@@ -15,10 +15,12 @@ type AgentArg struct {
 
 type ServerArg struct {
 	CommonArgs
-	Interval uint64
-	File     string
-	Restore  bool
-	ConnStr  string
+	Interval  uint64
+	File      string
+	Restore   bool
+	ConnStr   string
+	AuditFile string
+	AuditURL  string
 }
 
 type CommonArgs struct {
@@ -61,6 +63,8 @@ func MustParseServerArgs() *ServerArg {
 	flag.StringVar(&cfg.ConnStr, "d", "", "key")
 	flag.Uint64Var(&cfg.Interval, "i", 300, "store interval")
 	flag.StringVar(&cfg.File, "f", "metrics.json", "file name")
+	flag.StringVar(&cfg.AuditFile, "audit-file", "metrics1.json", "file name")
+	flag.StringVar(&cfg.AuditURL, "audit-url", "http://localhost:8080", "url")
 	flag.BoolVar(&cfg.Restore, "r", true, "load history")
 
 	flag.Parse()
@@ -68,6 +72,8 @@ func MustParseServerArgs() *ServerArg {
 	getCommonEnvVars(&cfg.CommonArgs)
 	cfg.ConnStr = utils.LoadEnvVar("DATABASE_DSN", cfg.ConnStr, strParser)
 	cfg.File = utils.LoadEnvVar("FILE_STORAGE_PATH", cfg.File, strParser)
+	cfg.AuditFile = utils.LoadEnvVar("AUDIT_FILE", cfg.AuditFile, strParser)
+	cfg.AuditURL = utils.LoadEnvVar("AUDIT_URL", cfg.AuditURL, strParser)
 	cfg.Interval = utils.LoadEnvVar("STORE_INTERVAL", cfg.Interval, uintParser)
 	cfg.Restore = utils.LoadEnvVar("RESTORE", cfg.Restore, boolParser)
 
