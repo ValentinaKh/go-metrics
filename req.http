@@ -21,3 +21,8 @@ Content-Type: application/json
 ###
 GET http://localhost:8080/ping
 Content-Type: text/plain
+
+###
+POST http://localhost:8080/update/counter/PauseTotalNs3/721200
+Content-Type: text/plain
+HashSHA256: 12365
