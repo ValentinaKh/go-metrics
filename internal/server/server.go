@@ -3,6 +3,11 @@ package server
 import (
 	"context"
 	"database/sql"
+	"net/http"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+
 	"github.com/ValentinaKh/go-metrics/internal/apperror"
 	"github.com/ValentinaKh/go-metrics/internal/audit"
 	"github.com/ValentinaKh/go-metrics/internal/config"
@@ -15,9 +20,6 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/service"
 	"github.com/ValentinaKh/go-metrics/internal/storage"
 	"github.com/ValentinaKh/go-metrics/internal/storage/decorator"
-	"github.com/go-chi/chi/v5"
-	"net/http"
-	"time"
 )
 
 func ConfigureServer(shutdownCtx context.Context, cfg *config.ServerArg, db *sql.DB) {

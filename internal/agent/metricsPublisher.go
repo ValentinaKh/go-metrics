@@ -3,9 +3,10 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"time"
+
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"time"
 )
 
 type TempStorage interface {

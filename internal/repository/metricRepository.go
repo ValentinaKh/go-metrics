@@ -4,9 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sort"
+
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/ValentinaKh/go-metrics/internal/retry"
-	"sort"
 )
 
 type MetricsRepository struct {

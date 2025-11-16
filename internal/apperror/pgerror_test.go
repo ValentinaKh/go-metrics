@@ -3,9 +3,10 @@ package apperror
 import (
 	"errors"
 	"fmt"
+	"testing"
+
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 )

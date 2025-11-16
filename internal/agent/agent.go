@@ -2,6 +2,9 @@ package agent
 
 import (
 	"context"
+	"sync"
+	"time"
+
 	"github.com/ValentinaKh/go-metrics/internal/apperror"
 	"github.com/ValentinaKh/go-metrics/internal/config"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
@@ -10,8 +13,6 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/service/provider"
 	"github.com/ValentinaKh/go-metrics/internal/service/writer"
 	"github.com/ValentinaKh/go-metrics/internal/storage"
-	"sync"
-	"time"
 )
 
 func ConfigureAgent(shutdownCtx context.Context, cfg *config.AgentArg, rCfg *config.RetryConfig, mChan chan []models.Metrics) *sync.WaitGroup {

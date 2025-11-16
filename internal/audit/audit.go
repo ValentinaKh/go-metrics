@@ -2,11 +2,13 @@ package audit
 
 import (
 	"encoding/json"
+	"time"
+
+	"github.com/go-resty/resty/v2"
+
 	"github.com/ValentinaKh/go-metrics/internal/fileworker"
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"github.com/go-resty/resty/v2"
-	"time"
 )
 
 type Publisher interface {

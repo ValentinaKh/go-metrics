@@ -1,9 +1,10 @@
 package provider
 
 import (
-	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"math/rand"
 	"runtime"
+
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
 type metricGetter struct {

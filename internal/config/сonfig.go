@@ -2,8 +2,9 @@ package config
 
 import (
 	"flag"
-	"github.com/ValentinaKh/go-metrics/internal/utils"
 	"strconv"
+
+	"github.com/ValentinaKh/go-metrics/internal/utils"
 )
 
 type AgentArg struct {

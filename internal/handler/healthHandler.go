@@ -2,10 +2,12 @@ package handler
 
 import (
 	"context"
-	"github.com/ValentinaKh/go-metrics/internal/logger"
-	"go.uber.org/zap"
 	"net/http"
 	"time"
+
+	"go.uber.org/zap"
+
+	"github.com/ValentinaKh/go-metrics/internal/logger"
 )
 
 type HealthChecker interface {

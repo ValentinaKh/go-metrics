@@ -2,12 +2,14 @@ package decorator
 
 import (
 	"context"
+	"time"
+
+	"go.uber.org/zap"
+
 	"github.com/ValentinaKh/go-metrics/internal/fileworker"
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/ValentinaKh/go-metrics/internal/storage"
-	"go.uber.org/zap"
-	"time"
 )
 
 type StoreWithAsyncFile struct {

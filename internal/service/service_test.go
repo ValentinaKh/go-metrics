@@ -3,10 +3,12 @@ package service
 import (
 	"context"
 	"fmt"
-	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"github.com/stretchr/testify/assert"
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
 type SMockStorage struct {

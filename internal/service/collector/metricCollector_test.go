@@ -3,9 +3,10 @@ package collector
 import (
 	"context"
 	"errors"
-	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"testing"
 	"time"
+
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

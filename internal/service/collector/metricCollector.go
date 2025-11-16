@@ -2,9 +2,10 @@ package collector
 
 import (
 	"context"
+	"time"
+
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"time"
 )
 
 type Collector interface {

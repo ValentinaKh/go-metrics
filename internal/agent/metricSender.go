@@ -2,8 +2,10 @@ package agent
 
 import (
 	"context"
-	"github.com/ValentinaKh/go-metrics/internal/logger"
+
 	"go.uber.org/zap"
+
+	"github.com/ValentinaKh/go-metrics/internal/logger"
 )
 
 type ServerSender interface {

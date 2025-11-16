@@ -2,9 +2,11 @@ package repository
 
 import (
 	"database/sql"
-	"github.com/ValentinaKh/go-metrics/internal/logger"
+
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
+
+	"github.com/ValentinaKh/go-metrics/internal/logger"
 )
 
 func MustConnectDB(connectionString string) *sql.DB {

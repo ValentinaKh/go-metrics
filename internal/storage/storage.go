@@ -3,8 +3,9 @@ package storage
 import (
 	"context"
 	"fmt"
-	"github.com/ValentinaKh/go-metrics/internal/model"
 	"sync"
+
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
 type MemStorage struct {

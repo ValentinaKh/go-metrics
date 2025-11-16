@@ -1,11 +1,13 @@
 package provider
 
 import (
-	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"runtime"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
 func TestRuntimeProvider_Collect_WithManualProvider(t *testing.T) {

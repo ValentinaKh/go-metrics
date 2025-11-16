@@ -3,10 +3,11 @@ package agent
 import (
 	"context"
 	"errors"
-	"github.com/stretchr/testify/mock"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/mock"
 )
 
 type MockSender struct {

@@ -5,12 +5,14 @@ import (
 	"compress/gzip"
 	"context"
 	"fmt"
+	"net/url"
+
+	"github.com/go-resty/resty/v2"
+	"go.uber.org/zap"
+
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"github.com/ValentinaKh/go-metrics/internal/retry"
 	"github.com/ValentinaKh/go-metrics/internal/utils"
-	"github.com/go-resty/resty/v2"
-	"go.uber.org/zap"
-	"net/url"
 )
 
 type HTTPSender struct {

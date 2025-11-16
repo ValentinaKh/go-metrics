@@ -3,9 +3,10 @@ package service
 import (
 	"context"
 	"encoding/json"
-	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"io"
 	"os"
+
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
 func LoadMetrics(fileName string, st Storage) error {

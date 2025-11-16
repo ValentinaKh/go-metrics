@@ -3,8 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
-	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"strconv"
+
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
 type Storage interface {
