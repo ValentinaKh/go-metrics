@@ -97,11 +97,17 @@ func createServer(ctx context.Context, metricsService *service.MetricsService, h
 		}
 	})
 
+	go func() {
+		logger.Log.Info("pprof server starting on :6060")
+		if err := http.ListenAndServe(":6060", nil); err != nil && err != http.ErrServerClosed {
+			panic(err)
+		}
+	}()
+
 	srv := &http.Server{
 		Addr:    host,
 		Handler: r,
 	}
-
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			panic(err)
