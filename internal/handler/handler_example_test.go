@@ -34,6 +34,37 @@ func ExampleMetricsHandler() {
 	}
 	fmt.Printf("Response Status: %s, Response body %s", res.Status, string(resBody))
 }
+func ExampleGetMetricHandler() {
+	var res int64 = 500
+	handler := GetMetricHandler(context.TODO(), &MockMetricsService{
+		GetMetricFunc: func(metric models.Metrics) (*models.Metrics, error) {
+			return &models.Metrics{
+				ID:    metric.ID,
+				MType: metric.MType,
+				Delta: &res,
+				Value: metric.Value,
+				Hash:  "",
+			}, nil
+		},
+	})
+	r := chi.NewRouter()
+	r.Get("/value/{type}/{name}", handler)
+	server := httptest.NewServer(r)
+	defer server.Close()
+
+	resp, err := server.Client().Get(server.URL + "/value/counter/custom")
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	body := resp.Body
+	data, err := io.ReadAll(body)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Response Status: %s, Response body %s", resp.Status, string(data))
+}
 
 func ExampleGetAllMetricsHandler() {
 	handler := GetAllMetricsHandler(context.TODO(), &MockMetricsService{
@@ -46,10 +77,16 @@ func ExampleGetAllMetricsHandler() {
 	server := httptest.NewServer(r)
 	defer server.Close()
 
-	resp, _ := server.Client().Get(server.URL)
+	resp, err := server.Client().Get(server.URL)
+	if err != nil {
+		panic(err)
+	}
 	defer resp.Body.Close()
 	body := resp.Body
-	data, _ := io.ReadAll(body)
+	data, err := io.ReadAll(body)
+	if err != nil {
+		panic(err)
+	}
 
 	fmt.Printf("Response Status: %s, Response body %s", resp.Status, string(data))
 }
@@ -96,7 +133,10 @@ func ExampleGetJSONMetricHandler() {
 
 	res := w.Result()
 	defer res.Body.Close()
-	resBody, _ := io.ReadAll(res.Body)
+	resBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		panic(err)
+	}
 
 	fmt.Printf("Response Status: %s, Response body %s", res.Status, string(resBody))
 }
