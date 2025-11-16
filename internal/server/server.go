@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"database/sql"
+	"github.com/ValentinaKh/go-metrics/internal/audit/file"
+	"github.com/ValentinaKh/go-metrics/internal/audit/rest"
 	"net/http"
 	"time"
 
@@ -71,22 +73,22 @@ func ConfigureServer(shutdownCtx context.Context, cfg *config.ServerArg, db *sql
 
 		logger.Log.Info("Use mem storage")
 	}
-	auditor := audit.Auditor{}
+	auditor := audit.NewAuditor(shutdownCtx, cfg.AuditQueueSize)
 	if cfg.AuditFile != "" {
 		writer, err := fileworker.NewFileWriter(cfg.AuditFile)
 		if err != nil {
 			panic(err)
 		}
-		auditor.Register(audit.NewFileAuditHandler(writer))
+		auditor.Register(file.NewFileAuditHandler(writer))
 	}
 	if cfg.AuditURL != "" {
-		auditor.Register(audit.NewRestAuditHandler(cfg.AuditURL))
+		auditor.Register(rest.NewAuditHandler(cfg.AuditURL))
 	}
-	createServer(shutdownCtx, service.NewMetricsService(strg), healthService, cfg.Host, cfg.Key, &auditor)
+	createServer(shutdownCtx, service.NewMetricsService(strg), healthService, cfg.Host, cfg.Key, cfg.ProfilePort, auditor)
 
 }
 
-func createServer(ctx context.Context, metricsService *service.MetricsService, healthService handler.HealthChecker, host, key string, publisher audit.Publisher) {
+func createServer(ctx context.Context, metricsService *service.MetricsService, healthService handler.HealthChecker, host, key, port string, publisher audit.Publisher) {
 	r := chi.NewRouter()
 	r.With(middleware.LoggingMw, middleware.ValidateHashMW(key), middleware.GzipMW, middleware.HashResponseMW(key)).Route("/", func(r chi.Router) {
 		r.Get("/", handler.GetAllMetricsHandler(ctx, metricsService))
@@ -101,8 +103,7 @@ func createServer(ctx context.Context, metricsService *service.MetricsService, h
 	})
 
 	go func() {
-		logger.Log.Info("pprof server starting on :6060")
-		if err := http.ListenAndServe(":6060", nil); err != nil && err != http.ErrServerClosed {
+		if err := http.ListenAndServe(port, nil); err != nil && err != http.ErrServerClosed {
 			panic(err)
 		}
 	}()

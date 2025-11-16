@@ -2,13 +2,7 @@
 package audit
 
 import (
-	"encoding/json"
-	"time"
-
-	"github.com/go-resty/resty/v2"
-
-	"github.com/ValentinaKh/go-metrics/internal/fileworker"
-	"github.com/ValentinaKh/go-metrics/internal/logger"
+	"context"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
@@ -18,11 +12,20 @@ type Publisher interface {
 }
 
 type observer interface {
-	update(request []models.Metrics, ip string)
+	Update(request []models.Metrics, ip string)
 }
 
 type Auditor struct {
 	observers []observer
+	tasks     chan task
+}
+
+func NewAuditor(ctx context.Context, queueSize uint64) *Auditor {
+	a := &Auditor{
+		tasks: make(chan task, queueSize),
+	}
+	a.startWorker(ctx)
+	return a
 }
 
 // Register добавляет наблюдателя в список наблюдателей
@@ -33,66 +36,32 @@ func (e *Auditor) Register(o observer) {
 // Notify вызывает метод update у всех наблюдателей, оповещает об изменении метрики
 func (e *Auditor) Notify(request []models.Metrics, ip string) {
 	for _, observer := range e.observers {
-		observer.update(request, ip)
+		observer.Update(request, ip)
 	}
 }
-
-// FileAuditHandler используется для записи аудита в файл
-type FileAuditHandler struct {
-	writer fileworker.Writer
+func (e *Auditor) startWorker(ctx context.Context) {
+	go func() {
+		for {
+			select {
+			case task, ok := <-e.tasks:
+				if !ok {
+					return
+				}
+				e.Notify(task.metrics, task.ip)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 }
 
-func NewFileAuditHandler(writer fileworker.Writer) *FileAuditHandler {
-	return &FileAuditHandler{
-		writer: writer,
-	}
-}
-
-func (e *FileAuditHandler) update(request []models.Metrics, ip string) {
-	err := e.writer.Write(auditDto{
-		TS:        time.Now().Unix(),
-		Metrics:   request,
-		IPAddress: ip,
-	})
-	if err != nil {
-		logger.Log.Error(err.Error())
-	}
-}
-
-// RestAuditHandler используется для записи аудита в rest api
-type RestAuditHandler struct {
-	client *resty.Client
-	url    string
-}
-
-func NewRestAuditHandler(url string) *RestAuditHandler {
-	return &RestAuditHandler{
-		client: resty.New(),
-		url:    url,
-	}
-}
-
-func (s *RestAuditHandler) update(request []models.Metrics, ip string) {
-	rs, err := json.Marshal(auditDto{
-		TS:        time.Now().Unix(),
-		Metrics:   request,
-		IPAddress: ip,
-	})
-	if err != nil {
-		logger.Log.Error(err.Error())
-		return
-	}
-
-	_, err = s.client.R().
-		SetHeaders(map[string]string{"Content-Type": "application/json"}).SetBody(rs).Post(s.url)
-	if err != nil {
-		logger.Log.Error(err.Error())
-	}
-
-}
-
-type auditDto struct {
+type Dto struct {
 	TS        int64            `json:"ts"`
 	Metrics   []models.Metrics `json:"metrics"`
 	IPAddress string           `json:"ip_address"`
+}
+
+type task struct {
+	metrics []models.Metrics
+	ip      string
 }

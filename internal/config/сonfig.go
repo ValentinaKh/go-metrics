@@ -19,12 +19,14 @@ type AgentArg struct {
 // ServerArg - server config
 type ServerArg struct {
 	CommonArgs
-	Interval  uint64
-	File      string
-	Restore   bool
-	ConnStr   string
-	AuditFile string
-	AuditURL  string
+	Interval       uint64
+	File           string
+	Restore        bool
+	ConnStr        string
+	AuditFile      string
+	AuditURL       string
+	ProfilePort    string
+	AuditQueueSize uint64
 }
 
 type CommonArgs struct {
@@ -66,6 +68,7 @@ func MustParseServerArgs() *ServerArg {
 	registerCommonFlags(&cfg.CommonArgs)
 	flag.StringVar(&cfg.ConnStr, "d", "", "key")
 	flag.Uint64Var(&cfg.Interval, "i", 300, "store interval")
+	flag.Uint64Var(&cfg.AuditQueueSize, "b", 300, "audit quqeue size")
 	flag.StringVar(&cfg.File, "f", "metrics.json", "file name")
 	flag.StringVar(&cfg.AuditFile, "audit-file", "metrics1.json", "file name")
 	flag.StringVar(&cfg.AuditURL, "audit-url", "http://localhost:8080", "url")
@@ -74,10 +77,12 @@ func MustParseServerArgs() *ServerArg {
 	flag.Parse()
 
 	getCommonEnvVars(&cfg.CommonArgs)
+	cfg.ProfilePort = ":6060"
 	cfg.ConnStr = utils.LoadEnvVar("DATABASE_DSN", cfg.ConnStr, strParser)
 	cfg.File = utils.LoadEnvVar("FILE_STORAGE_PATH", cfg.File, strParser)
 	cfg.AuditFile = utils.LoadEnvVar("AUDIT_FILE", cfg.AuditFile, strParser)
 	cfg.AuditURL = utils.LoadEnvVar("AUDIT_URL", cfg.AuditURL, strParser)
+	cfg.AuditURL = utils.LoadEnvVar("PROFILE_PORT", cfg.ProfilePort, strParser)
 	cfg.Interval = utils.LoadEnvVar("STORE_INTERVAL", cfg.Interval, uintParser)
 	cfg.Restore = utils.LoadEnvVar("RESTORE", cfg.Restore, boolParser)
 

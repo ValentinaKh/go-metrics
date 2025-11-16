@@ -92,11 +92,13 @@ func ExampleGetAllMetricsHandler() {
 }
 
 func ExampleJSONUpdateMetricHandler() {
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
 	handler := JSONUpdateMetricHandler(context.TODO(), &MockMetricsService{
 		HandleFunc: func(metric models.Metrics) error {
 			return nil
 		},
-	}, &audit.Auditor{})
+	}, audit.NewAuditor(ctx, 5))
 	request := httptest.NewRequest(http.MethodPost, "/update", bytes.NewBufferString(`{"id": "LastGC","type": "gauge","value": 1744184459}`))
 	w := httptest.NewRecorder()
 

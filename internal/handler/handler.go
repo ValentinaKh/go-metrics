@@ -73,7 +73,7 @@ func JSONUpdateMetricHandler(ctx context.Context, service Service, p audit.Publi
 		}
 
 		w.WriteHeader(http.StatusOK)
-		p.Notify([]models.Metrics{request}, r.URL.Host)
+		p.Notify([]models.Metrics{request}, r.RemoteAddr)
 	}
 }
 
@@ -190,7 +190,7 @@ func JSONUpdateMetricsHandler(ctx context.Context, service Service, p audit.Publ
 		}
 
 		w.WriteHeader(http.StatusOK)
-		p.Notify(request, r.URL.Host)
+		p.Notify(request, r.RemoteAddr)
 	}
 }
 
