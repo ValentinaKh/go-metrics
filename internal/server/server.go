@@ -22,6 +22,7 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/storage/decorator"
 )
 
+// ConfigureServer configure server
 func ConfigureServer(shutdownCtx context.Context, cfg *config.ServerArg, db *sql.DB) {
 	var strg service.Storage
 	var healthService handler.HealthChecker

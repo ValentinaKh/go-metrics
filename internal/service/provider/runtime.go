@@ -12,6 +12,7 @@ type metricGetter struct {
 	value func(*runtime.MemStats) float64
 }
 
+// RuntimeProvider collects runtime metrics
 type RuntimeProvider struct {
 	collectors []metricGetter
 }

@@ -9,6 +9,7 @@ import (
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
+// LoadMetrics загружает метрики из файла
 func LoadMetrics(fileName string, st Storage) error {
 	file, err := os.OpenFile(fileName, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {

@@ -9,6 +9,7 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 )
 
+// MustConnectDB connect to db
 func MustConnectDB(connectionString string) *sql.DB {
 	if connectionString == "" {
 		panic("connection string is empty")

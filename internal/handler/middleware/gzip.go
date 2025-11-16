@@ -1,3 +1,4 @@
+// Package middleware содержит middleware для rest вызовов
 package middleware
 
 import (

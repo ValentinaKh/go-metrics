@@ -12,6 +12,7 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/storage"
 )
 
+// StoreWithAsyncFile is a decorator for storage.MemStorage that writes metrics to a file asynchronously.
 type StoreWithAsyncFile struct {
 	*storage.MemStorage
 	writer   fileworker.Writer

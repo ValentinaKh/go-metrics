@@ -1,3 +1,4 @@
+// Package config - конфигурация приложения
 package config
 
 import (
@@ -7,6 +8,7 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/utils"
 )
 
+// AgentArg  - agent config
 type AgentArg struct {
 	CommonArgs
 	ReportInterval uint64
@@ -14,6 +16,7 @@ type AgentArg struct {
 	RateLimit      uint64
 }
 
+// ServerArg - server config
 type ServerArg struct {
 	CommonArgs
 	Interval  uint64

@@ -9,6 +9,7 @@ import (
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
+// SystemProvider collects system metrics
 type SystemProvider struct {
 }
 

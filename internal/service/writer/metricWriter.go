@@ -10,6 +10,7 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/service"
 )
 
+// MetricWriter writes metrics to storage
 type MetricWriter struct {
 	s     service.Storage
 	mChan chan []models.Metrics

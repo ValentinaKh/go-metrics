@@ -9,6 +9,7 @@ import (
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
+// TempStorage - интерфейс для хранилища метрик
 type TempStorage interface {
 	// GetAndClear овозвращаем то, что находится в хранилище и очищаем хранилище
 	GetAndClear() map[string]*models.Metrics
@@ -18,6 +19,7 @@ type Publisher interface {
 	Publish(ctx context.Context)
 }
 
+// MetricsPublisher - содержит используемое хранилище, а так же канал для отправки метрик
 type MetricsPublisher struct {
 	s              TempStorage
 	reportInterval time.Duration
@@ -29,6 +31,7 @@ func NewMetricsPublisher(s TempStorage, reportInterval time.Duration) (*MetricsP
 	return &MetricsPublisher{s: s, reportInterval: reportInterval, mChan: mChan}, mChan
 }
 
+// Publish - забирает из хранилища метрики и отправляет их в канал для последующей отправки на сервер
 func (s *MetricsPublisher) Publish(ctx context.Context) {
 	ticker := time.NewTicker(s.reportInterval)
 	defer ticker.Stop()

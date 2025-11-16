@@ -22,6 +22,7 @@ func NewMetricsRepository(db *sql.DB, retrier *retry.Retrier) *MetricsRepository
 	}
 }
 
+// UpdateMetric - обновление метрики
 func (r *MetricsRepository) UpdateMetric(ctx context.Context, value models.Metrics) error {
 	_, err := retry.DoWithRetry(ctx, r.retrier, func() (any, error) {
 		switch value.MType {
@@ -50,6 +51,7 @@ func (r *MetricsRepository) UpdateMetric(ctx context.Context, value models.Metri
 	return err
 }
 
+// GetAllMetrics - получение всех метрик
 func (r *MetricsRepository) GetAllMetrics(ctx context.Context) (map[string]*models.Metrics, error) {
 	response, err := retry.DoWithRetry(ctx, r.retrier, func() (map[string]*models.Metrics, error) {
 		metrics := make(map[string]*models.Metrics)
@@ -78,6 +80,7 @@ func (r *MetricsRepository) GetAllMetrics(ctx context.Context) (map[string]*mode
 	return response, err
 }
 
+// UpdateMetrics - обновление метрик
 func (r *MetricsRepository) UpdateMetrics(ctx context.Context, values []models.Metrics) error {
 	sort.Slice(values, func(i, j int) bool {
 		return values[i].ID < values[j].ID
@@ -117,6 +120,7 @@ func (r *MetricsRepository) UpdateMetrics(ctx context.Context, values []models.M
 	return err
 }
 
+// InitTables - инициализация таблиц
 func InitTables(ctx context.Context, db *sql.DB) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {

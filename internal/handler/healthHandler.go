@@ -14,6 +14,7 @@ type HealthChecker interface {
 	CheckDB(ctx context.Context) error
 }
 
+// HealthHandler возвращает состояние БД
 func HealthHandler(ctx context.Context, h HealthChecker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		timeout, cancel := context.WithTimeout(ctx, 1*time.Second)

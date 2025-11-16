@@ -1,3 +1,4 @@
+// Package handler contains handlers for metrics
 package handler
 
 import (
@@ -16,6 +17,7 @@ import (
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
+// Service is an interface for metrics service
 type Service interface {
 	UpdateMetric(ctx context.Context, metric models.Metrics) error
 	UpdateMetrics(ctx context.Context, metrics []models.Metrics) error
@@ -23,6 +25,7 @@ type Service interface {
 	GetAllMetrics(ctx context.Context) (map[string]string, error)
 }
 
+// MetricsHandler - слушатель для записи/обновления метрики в формате /update/counter/PauseTotalNs/721200
 func MetricsHandler(ctx context.Context, service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		timeout, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -47,6 +50,7 @@ func MetricsHandler(ctx context.Context, service Service) http.HandlerFunc {
 	}
 }
 
+// JSONUpdateMetricHandler слушатель для записи/обновления метрики в формате JSON
 func JSONUpdateMetricHandler(ctx context.Context, service Service, p audit.Publisher) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		timeout, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -73,6 +77,7 @@ func JSONUpdateMetricHandler(ctx context.Context, service Service, p audit.Publi
 	}
 }
 
+// GetMetricHandler слушатель для получения метрик
 func GetMetricHandler(ctx context.Context, service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		timeout, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -100,6 +105,7 @@ func GetMetricHandler(ctx context.Context, service Service) http.HandlerFunc {
 	}
 }
 
+// GetJSONMetricHandler слушатель для получения метрик в формате JSON
 func GetJSONMetricHandler(ctx context.Context, service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		timeout, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -136,6 +142,7 @@ func GetJSONMetricHandler(ctx context.Context, service Service) http.HandlerFunc
 	}
 }
 
+// GetAllMetricsHandler слушатель для получения всех метрик в формате HTML
 func GetAllMetricsHandler(ctx context.Context, service Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		timeout, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -160,6 +167,7 @@ func GetAllMetricsHandler(ctx context.Context, service Service) http.HandlerFunc
 	}
 }
 
+// JSONUpdateMetricsHandler слушатель для записи/обновления метрик в формате JSON
 func JSONUpdateMetricsHandler(ctx context.Context, service Service, p audit.Publisher) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		timeout, cancel := context.WithTimeout(ctx, 10*time.Second)

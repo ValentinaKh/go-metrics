@@ -1,3 +1,4 @@
+// Package audit используется для записи аудита в файл или в rest api
 package audit
 
 import (
@@ -24,16 +25,19 @@ type Auditor struct {
 	observers []observer
 }
 
+// Register добавляет наблюдателя в список наблюдателей
 func (e *Auditor) Register(o observer) {
 	e.observers = append(e.observers, o)
 }
 
+// Notify вызывает метод update у всех наблюдателей, оповещает об изменении метрики
 func (e *Auditor) Notify(request []models.Metrics, ip string) {
 	for _, observer := range e.observers {
 		observer.update(request, ip)
 	}
 }
 
+// FileAuditHandler используется для записи аудита в файл
 type FileAuditHandler struct {
 	writer fileworker.Writer
 }
@@ -55,6 +59,7 @@ func (e *FileAuditHandler) update(request []models.Metrics, ip string) {
 	}
 }
 
+// RestAuditHandler используется для записи аудита в rest api
 type RestAuditHandler struct {
 	client *resty.Client
 	url    string

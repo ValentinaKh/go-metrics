@@ -5,11 +5,13 @@ import (
 	"time"
 )
 
+// RetryConfig - конфигурация повторов
 type RetryConfig struct {
 	MaxAttempts int
 	Delays      []time.Duration
 }
 
+// Validate - проверка конфигурации
 func (r RetryConfig) Validate() error {
 	if len(r.Delays) == 0 {
 		return errors.New("не заданы интервалы повторов")

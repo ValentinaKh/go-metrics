@@ -8,10 +8,12 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 )
 
+// ServerSender - интерфейс для обработки получения метрик из канала
 type ServerSender interface {
 	Push(ctx context.Context)
 }
 
+// Sender - интерфейс для отправки метрик
 type Sender interface {
 	Send(data []byte) error
 }
@@ -25,6 +27,7 @@ func NewMetricSender(h Sender, mChan chan []byte) *MetricSender {
 	return &MetricSender{h, mChan}
 }
 
+// Push - получает метрики из канала и отправляет их на сервер
 func (s *MetricSender) Push(ctx context.Context) {
 	for {
 		select {
