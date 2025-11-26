@@ -3,10 +3,12 @@ package storage
 import (
 	"context"
 	"fmt"
-	"github.com/ValentinaKh/go-metrics/internal/model"
 	"sync"
+
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
+// MemStorage is a simple in-memory storage for metrics
 type MemStorage struct {
 	mutex   sync.Mutex
 	storage map[string]*models.Metrics

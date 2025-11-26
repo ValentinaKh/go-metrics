@@ -2,11 +2,14 @@ package provider
 
 import (
 	"fmt"
-	models "github.com/ValentinaKh/go-metrics/internal/model"
+
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
+
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
+// SystemProvider collects system metrics
 type SystemProvider struct {
 }
 

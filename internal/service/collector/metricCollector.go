@@ -2,11 +2,13 @@ package collector
 
 import (
 	"context"
+	"time"
+
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"time"
 )
 
+// Collector is an interface for collecting metrics
 type Collector interface {
 	Collect(ctx context.Context)
 }
@@ -29,6 +31,7 @@ func NewMetricCollector(provider MetricProvider, pollInterval time.Duration, mCh
 	}
 }
 
+// Collect collects metrics from the provider
 func (c *metricCollector) Collect(ctx context.Context) {
 	ticker := time.NewTicker(c.pollInterval)
 	defer ticker.Stop()

@@ -2,8 +2,9 @@ package retry
 
 import (
 	"context"
-	"github.com/ValentinaKh/go-metrics/internal/apperror"
 	"time"
+
+	"github.com/ValentinaKh/go-metrics/internal/apperror"
 )
 
 type (

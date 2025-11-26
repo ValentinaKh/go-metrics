@@ -2,10 +2,12 @@ package storage
 
 import (
 	"context"
-	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
 func Test_memStorage_GetAndClear(t *testing.T) {

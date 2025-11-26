@@ -5,14 +5,16 @@ import (
 	"crypto/hmac"
 	"encoding/hex"
 	"fmt"
-	"github.com/ValentinaKh/go-metrics/internal/logger"
-	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"github.com/ValentinaKh/go-metrics/internal/utils"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
+
+	"github.com/ValentinaKh/go-metrics/internal/logger"
+	models "github.com/ValentinaKh/go-metrics/internal/model"
+	"github.com/ValentinaKh/go-metrics/internal/utils"
 )
 
 const hashHeader = "HashSHA256"

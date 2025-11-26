@@ -2,15 +2,17 @@ package main
 
 import (
 	"context"
-	"github.com/ValentinaKh/go-metrics/internal/agent"
-	"github.com/ValentinaKh/go-metrics/internal/config"
-	"github.com/ValentinaKh/go-metrics/internal/logger"
-	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"go.uber.org/zap"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"go.uber.org/zap"
+
+	"github.com/ValentinaKh/go-metrics/internal/agent"
+	"github.com/ValentinaKh/go-metrics/internal/config"
+	"github.com/ValentinaKh/go-metrics/internal/logger"
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
 func main() {

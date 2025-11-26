@@ -3,7 +3,15 @@ package server
 import (
 	"context"
 	"database/sql"
+	"github.com/ValentinaKh/go-metrics/internal/audit/file"
+	"github.com/ValentinaKh/go-metrics/internal/audit/rest"
+	"net/http"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+
 	"github.com/ValentinaKh/go-metrics/internal/apperror"
+	"github.com/ValentinaKh/go-metrics/internal/audit"
 	"github.com/ValentinaKh/go-metrics/internal/config"
 	"github.com/ValentinaKh/go-metrics/internal/fileworker"
 	"github.com/ValentinaKh/go-metrics/internal/handler"
@@ -14,11 +22,9 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/service"
 	"github.com/ValentinaKh/go-metrics/internal/storage"
 	"github.com/ValentinaKh/go-metrics/internal/storage/decorator"
-	"github.com/go-chi/chi/v5"
-	"net/http"
-	"time"
 )
 
+// ConfigureServer configure server
 func ConfigureServer(shutdownCtx context.Context, cfg *config.ServerArg, db *sql.DB) {
 	var strg service.Storage
 	var healthService handler.HealthChecker
@@ -67,17 +73,28 @@ func ConfigureServer(shutdownCtx context.Context, cfg *config.ServerArg, db *sql
 
 		logger.Log.Info("Use mem storage")
 	}
-	createServer(shutdownCtx, service.NewMetricsService(strg), healthService, cfg.Host, cfg.Key)
+	auditor := audit.NewAuditor(shutdownCtx, cfg.AuditQueueSize)
+	if cfg.AuditFile != "" {
+		writer, err := fileworker.NewFileWriter(cfg.AuditFile)
+		if err != nil {
+			panic(err)
+		}
+		auditor.Register(file.NewFileAuditHandler(writer))
+	}
+	if cfg.AuditURL != "" {
+		auditor.Register(rest.NewAuditHandler(cfg.AuditURL))
+	}
+	createServer(shutdownCtx, service.NewMetricsService(strg), healthService, cfg.Host, cfg.Key, cfg.ProfilePort, auditor)
 
 }
 
-func createServer(ctx context.Context, metricsService *service.MetricsService, healthService handler.HealthChecker, host, key string) {
+func createServer(ctx context.Context, metricsService *service.MetricsService, healthService handler.HealthChecker, host, key, port string, publisher audit.Publisher) {
 	r := chi.NewRouter()
 	r.With(middleware.LoggingMw, middleware.ValidateHashMW(key), middleware.GzipMW, middleware.HashResponseMW(key)).Route("/", func(r chi.Router) {
 		r.Get("/", handler.GetAllMetricsHandler(ctx, metricsService))
 		r.With(middleware.ValidationURLRqMw).Post("/update/{type}/{name}/{value}", handler.MetricsHandler(ctx, metricsService))
-		r.Post("/update/", handler.JSONUpdateMetricHandler(ctx, metricsService))
-		r.Post("/updates/", handler.JSONUpdateMetricsHandler(ctx, metricsService))
+		r.Post("/update/", handler.JSONUpdateMetricHandler(ctx, metricsService, publisher))
+		r.Post("/updates/", handler.JSONUpdateMetricsHandler(ctx, metricsService, publisher))
 		r.Get("/value/{type}/{name}", handler.GetMetricHandler(ctx, metricsService))
 		r.Post("/value/", handler.GetJSONMetricHandler(ctx, metricsService))
 		if healthService != nil {
@@ -85,11 +102,16 @@ func createServer(ctx context.Context, metricsService *service.MetricsService, h
 		}
 	})
 
+	go func() {
+		if err := http.ListenAndServe(port, nil); err != nil && err != http.ErrServerClosed {
+			panic(err)
+		}
+	}()
+
 	srv := &http.Server{
 		Addr:    host,
 		Handler: r,
 	}
-
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			panic(err)

@@ -3,14 +3,16 @@ package main
 import (
 	"context"
 	"database/sql"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"go.uber.org/zap"
+
 	"github.com/ValentinaKh/go-metrics/internal/config"
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"github.com/ValentinaKh/go-metrics/internal/repository"
 	"github.com/ValentinaKh/go-metrics/internal/server"
-	"go.uber.org/zap"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 func main() {

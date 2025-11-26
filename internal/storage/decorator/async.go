@@ -2,14 +2,17 @@ package decorator
 
 import (
 	"context"
+	"time"
+
+	"go.uber.org/zap"
+
 	"github.com/ValentinaKh/go-metrics/internal/fileworker"
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/ValentinaKh/go-metrics/internal/storage"
-	"go.uber.org/zap"
-	"time"
 )
 
+// StoreWithAsyncFile is a decorator for storage.MemStorage that writes metrics to a file asynchronously.
 type StoreWithAsyncFile struct {
 	*storage.MemStorage
 	writer   fileworker.Writer

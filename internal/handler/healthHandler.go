@@ -2,16 +2,19 @@ package handler
 
 import (
 	"context"
-	"github.com/ValentinaKh/go-metrics/internal/logger"
-	"go.uber.org/zap"
 	"net/http"
 	"time"
+
+	"go.uber.org/zap"
+
+	"github.com/ValentinaKh/go-metrics/internal/logger"
 )
 
 type HealthChecker interface {
 	CheckDB(ctx context.Context) error
 }
 
+// HealthHandler возвращает состояние БД
 func HealthHandler(ctx context.Context, h HealthChecker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		timeout, cancel := context.WithTimeout(ctx, 1*time.Second)

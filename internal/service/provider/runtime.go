@@ -1,9 +1,10 @@
 package provider
 
 import (
-	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"math/rand"
 	"runtime"
+
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
 type metricGetter struct {
@@ -11,6 +12,7 @@ type metricGetter struct {
 	value func(*runtime.MemStats) float64
 }
 
+// RuntimeProvider collects runtime metrics
 type RuntimeProvider struct {
 	collectors []metricGetter
 }

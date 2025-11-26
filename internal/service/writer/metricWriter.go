@@ -2,12 +2,15 @@ package writer
 
 import (
 	"context"
+
+	"go.uber.org/zap"
+
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/ValentinaKh/go-metrics/internal/service"
-	"go.uber.org/zap"
 )
 
+// MetricWriter writes metrics to storage
 type MetricWriter struct {
 	s     service.Storage
 	mChan chan []models.Metrics

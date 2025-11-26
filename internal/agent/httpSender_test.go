@@ -3,16 +3,18 @@ package agent
 import (
 	"bytes"
 	"compress/gzip"
-	"github.com/ValentinaKh/go-metrics/internal/apperror"
-	"github.com/ValentinaKh/go-metrics/internal/retry"
-	"github.com/go-resty/resty/v2"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/go-resty/resty/v2"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/ValentinaKh/go-metrics/internal/apperror"
+	"github.com/ValentinaKh/go-metrics/internal/retry"
 )
 
 func TestHTTPSender_Send_Success(t *testing.T) {

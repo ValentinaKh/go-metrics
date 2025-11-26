@@ -1,7 +1,11 @@
+// Package agent - содержит функции для запуска агента.
 package agent
 
 import (
 	"context"
+	"sync"
+	"time"
+
 	"github.com/ValentinaKh/go-metrics/internal/apperror"
 	"github.com/ValentinaKh/go-metrics/internal/config"
 	models "github.com/ValentinaKh/go-metrics/internal/model"
@@ -10,10 +14,9 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/service/provider"
 	"github.com/ValentinaKh/go-metrics/internal/service/writer"
 	"github.com/ValentinaKh/go-metrics/internal/storage"
-	"sync"
-	"time"
 )
 
+// ConfigureAgent - создает и запускает агента.
 func ConfigureAgent(shutdownCtx context.Context, cfg *config.AgentArg, rCfg *config.RetryConfig, mChan chan []models.Metrics) *sync.WaitGroup {
 	st := storage.NewMemStorage()
 	metricPublisher, msgCh := NewMetricsPublisher(st, time.Duration(cfg.ReportInterval)*time.Second)

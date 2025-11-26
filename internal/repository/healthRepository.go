@@ -15,6 +15,7 @@ func NewHealthRepository(db *sql.DB) *HealthRepository {
 	}
 }
 
+// Ping checks the database connection
 func (h *HealthRepository) Ping(ctx context.Context) error {
 	return h.db.PingContext(ctx)
 }

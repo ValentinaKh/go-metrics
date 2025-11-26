@@ -1,3 +1,4 @@
+// Package fileworker предназначен для записи данных в файл в формате JSON
 package fileworker
 
 import (
@@ -6,11 +7,13 @@ import (
 	"os"
 )
 
+// Writer описывает интерфейс для записи данных
 type Writer interface {
 	Write(v any) error
 	Close() error
 }
 
+// FileWriter  используется для записи данных в файл  в формате JSON
 type FileWriter struct {
 	encoder *json.Encoder
 	file    *os.File
@@ -30,6 +33,7 @@ func NewFileWriter(fileName string) (*FileWriter, error) {
 	}, nil
 }
 
+// Write записывает данные в файл в формате JSON
 func (f *FileWriter) Write(v any) error {
 	if err := f.encoder.Encode(v); err != nil {
 		return err
@@ -37,6 +41,7 @@ func (f *FileWriter) Write(v any) error {
 	return nil
 }
 
+// Close закрывает файл
 func (f *FileWriter) Close() error {
 	return f.file.Close()
 }

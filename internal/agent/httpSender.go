@@ -5,14 +5,17 @@ import (
 	"compress/gzip"
 	"context"
 	"fmt"
+	"net/url"
+
+	"github.com/go-resty/resty/v2"
+	"go.uber.org/zap"
+
 	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"github.com/ValentinaKh/go-metrics/internal/retry"
 	"github.com/ValentinaKh/go-metrics/internal/utils"
-	"github.com/go-resty/resty/v2"
-	"go.uber.org/zap"
-	"net/url"
 )
 
+// HTTPSender - позволяет отправлять данные по HTTP. Имеет возможность повторной отправки в случае неудачной попытки.
 type HTTPSender struct {
 	client    *resty.Client
 	url       string
@@ -24,6 +27,8 @@ func NewPostSender(host string, retrier *retry.Retrier, secureKey string) *HTTPS
 	return &HTTPSender{client: resty.New(), url: buildURL(host), retrier: retrier, secureKey: secureKey}
 }
 
+// Send - Отправляет сжатые по gzip, а так же подписанные, если задан ключ, SHA256 данные на сервер.
+// В случае неудачи повторяет попытку в соотвествии с настройками retrier.
 func (s *HTTPSender) Send(data []byte) error {
 	var compressedBody bytes.Buffer
 	gz := gzip.NewWriter(&compressedBody)

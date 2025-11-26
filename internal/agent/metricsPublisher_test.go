@@ -2,11 +2,13 @@ package agent
 
 import (
 	"context"
-	models "github.com/ValentinaKh/go-metrics/internal/model"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
 type MockTempStorage struct {

@@ -3,10 +3,12 @@ package service
 import (
 	"context"
 	"fmt"
-	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"strconv"
+
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
+// Storage интерфейс для работы с хранилищем
 type Storage interface {
 	// UpdateMetric обновляем метрику в хранилище
 	UpdateMetric(ctx context.Context, value models.Metrics) error
@@ -22,10 +24,12 @@ func NewMetricsService(storage Storage) *MetricsService {
 	return &MetricsService{strg: storage}
 }
 
+// UpdateMetric обновляем метрику
 func (s MetricsService) UpdateMetric(ctx context.Context, metric models.Metrics) error {
 	return s.strg.UpdateMetric(ctx, metric)
 }
 
+// GetMetric получаем метрику
 func (s MetricsService) GetMetric(ctx context.Context, m models.Metrics) (*models.Metrics, error) {
 	metrics, err := s.strg.GetAllMetrics(ctx)
 	if err != nil {
@@ -41,6 +45,7 @@ func (s MetricsService) GetMetric(ctx context.Context, m models.Metrics) (*model
 	return metric, nil
 }
 
+// GetAllMetrics получаем все метрики
 func (s MetricsService) GetAllMetrics(ctx context.Context) (map[string]string, error) {
 	result := make(map[string]string)
 	metrics, err := s.strg.GetAllMetrics(ctx)
@@ -61,6 +66,7 @@ func (s MetricsService) GetAllMetrics(ctx context.Context) (map[string]string, e
 	return result, nil
 }
 
+// UpdateMetrics обновляем метрики
 func (s MetricsService) UpdateMetrics(ctx context.Context, metrics []models.Metrics) error {
 	return s.strg.UpdateMetrics(ctx, metrics)
 }

@@ -3,9 +3,10 @@ package apperror
 import (
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"net"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNetworkErrorClassifier_Classify(t *testing.T) {
