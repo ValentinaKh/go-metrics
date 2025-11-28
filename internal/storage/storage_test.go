@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"github.com/stretchr/testify/require"
 	"sync"
 	"testing"
 
@@ -282,6 +283,94 @@ func Test_memStorage_GetAllMetrics(t *testing.T) {
 			metrics, err := s.GetAllMetrics(context.TODO())
 			assert.Nil(t, err)
 			assert.Equal(t, tt.want, metrics)
+		})
+	}
+}
+
+func TestMemStorage_UpdateMetrics(t *testing.T) {
+	float64Ptr := func(v float64) *float64 { return &v }
+	int64Ptr := func(v int64) *int64 { return &v }
+
+	tests := []struct {
+		name         string
+		inputMetrics []models.Metrics
+		assertions   func(t *testing.T, s *MemStorage)
+	}{
+		{
+			name: "add new gauge metric",
+			inputMetrics: []models.Metrics{
+				{ID: "NewGauge", MType: models.Gauge, Value: float64Ptr(42.5)},
+			},
+			assertions: func(t *testing.T, s *MemStorage) {
+				metric := s.storage["NewGauge"]
+				assert.Equal(t, models.Gauge, metric.MType)
+				assert.Equal(t, float64Ptr(42.5), metric.Value)
+			},
+		},
+		{
+			name: "add new counter metric",
+			inputMetrics: []models.Metrics{
+				{ID: "NewCounter", MType: models.Counter, Delta: int64Ptr(100)},
+			},
+			assertions: func(t *testing.T, s *MemStorage) {
+				metric := s.storage["NewCounter"]
+				assert.Equal(t, models.Counter, metric.MType)
+				assert.Equal(t, int64Ptr(100), metric.Delta)
+			},
+		},
+		{
+			name: "update existing gauge",
+			inputMetrics: []models.Metrics{
+				{ID: "ExistingGauge", MType: models.Gauge, Value: float64Ptr(20.0)},
+			},
+			assertions: func(t *testing.T, s *MemStorage) {
+				metric := s.storage["ExistingGauge"]
+				assert.Equal(t, float64Ptr(20.0), metric.Value)
+			},
+		},
+		{
+			name: "accumulate counter",
+			inputMetrics: []models.Metrics{
+				{ID: "AccCounter", MType: models.Counter, Delta: int64Ptr(3)},
+			},
+			assertions: func(t *testing.T, s *MemStorage) {
+				metric := s.storage["AccCounter"]
+				assert.Equal(t, int64Ptr(3), metric.Delta)
+			},
+		},
+		{
+			name: "multiple metrics mixed",
+			inputMetrics: []models.Metrics{
+				{ID: "G1", MType: models.Gauge, Value: float64Ptr(200)}, // обновление gauge
+				{ID: "C1", MType: models.Counter, Delta: int64Ptr(5)},   // накопление counter
+				{ID: "G2", MType: models.Gauge, Value: float64Ptr(300)}, // новая gauge
+				{ID: "C2", MType: models.Counter, Delta: int64Ptr(1)},   // новая counter
+			},
+			assertions: func(t *testing.T, s *MemStorage) {
+
+				metric := s.storage["G1"]
+				assert.Equal(t, float64Ptr(200), metric.Value)
+
+				metric = s.storage["C1"]
+				assert.Equal(t, int64Ptr(5), metric.Delta)
+
+				metric = s.storage["G2"]
+				assert.Equal(t, float64Ptr(300), metric.Value)
+
+				metric = s.storage["C2"]
+				assert.Equal(t, int64Ptr(1), metric.Delta)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			s := NewMemStorage()
+			err := s.UpdateMetrics(context.Background(), tt.inputMetrics)
+			require.NoError(t, err)
+			tt.assertions(t, s)
+
 		})
 	}
 }

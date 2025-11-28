@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"io"
 	"os"
 
@@ -15,7 +16,12 @@ func LoadMetrics(fileName string, st Storage) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			logger.Log.Error(err.Error())
+		}
+	}(file)
 
 	decoder := json.NewDecoder(file)
 

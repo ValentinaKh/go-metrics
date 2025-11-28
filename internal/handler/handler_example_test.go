@@ -27,7 +27,12 @@ func ExampleMetricsHandler() {
 	r.ServeHTTP(w, request)
 
 	res := w.Result()
-	defer res.Body.Close()
+	defer func(r *http.Response) {
+		err := r.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(res)
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		panic(err)
@@ -56,7 +61,12 @@ func ExampleGetMetricHandler() {
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
+	defer func(resp *http.Response) {
+		err := resp.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(resp)
 
 	body := resp.Body
 	data, err := io.ReadAll(body)
@@ -81,7 +91,12 @@ func ExampleGetAllMetricsHandler() {
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
+	defer func(r *http.Response) {
+		err := r.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(resp)
 	body := resp.Body
 	data, err := io.ReadAll(body)
 	if err != nil {
@@ -108,7 +123,12 @@ func ExampleJSONUpdateMetricHandler() {
 	r.ServeHTTP(w, request)
 
 	res := w.Result()
-	defer res.Body.Close()
+	defer func(r *http.Response) {
+		err := r.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(res)
 
 	fmt.Printf("Response Status: %s", res.Status)
 }
@@ -134,7 +154,12 @@ func ExampleGetJSONMetricHandler() {
 	r.ServeHTTP(w, request)
 
 	res := w.Result()
-	defer res.Body.Close()
+	defer func(r *http.Response) {
+		err := r.Body.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(res)
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		panic(err)

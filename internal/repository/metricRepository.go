@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"sort"
 
 	models "github.com/ValentinaKh/go-metrics/internal/model"
@@ -60,7 +61,12 @@ func (r *MetricsRepository) GetAllMetrics(ctx context.Context) (map[string]*mode
 		if err != nil {
 			return nil, fmt.Errorf("ошибка при получении данных: %w", err)
 		}
-		defer rows.Close()
+		defer func(rows *sql.Rows) {
+			err := rows.Close()
+			if err != nil {
+				logger.Log.Error("ошибка при закрытии rows")
+			}
+		}(rows)
 
 		for rows.Next() {
 			var v models.Metrics
@@ -90,7 +96,12 @@ func (r *MetricsRepository) UpdateMetrics(ctx context.Context, values []models.M
 		if err != nil {
 			return struct{}{}, fmt.Errorf("не удалось создать транзакцию: %w", err)
 		}
-		defer tx.Rollback()
+		defer func(tx *sql.Tx) {
+			err := tx.Rollback()
+			if err != nil {
+				logger.Log.Error("не удалось откатить транзакцию")
+			}
+		}(tx)
 
 		stmt, err := tx.PrepareContext(ctx, "INSERT INTO metrics (name, type_metrics, delta, value) VALUES ($1, $2, $3, $4) "+
 			" ON CONFLICT (name) DO UPDATE"+
@@ -103,7 +114,12 @@ func (r *MetricsRepository) UpdateMetrics(ctx context.Context, values []models.M
 		if err != nil {
 			return struct{}{}, fmt.Errorf("не удалось создать запрос: %w", err)
 		}
-		defer stmt.Close()
+		defer func(stmt *sql.Stmt) {
+			err := stmt.Close()
+			if err != nil {
+				logger.Log.Error("не удалось закрыть stmt")
+			}
+		}(stmt)
 
 		for _, elem := range values {
 			_, err := stmt.ExecContext(ctx, elem.ID, elem.MType, elem.Delta, elem.Value)
@@ -126,7 +142,12 @@ func InitTables(ctx context.Context, db *sql.DB) {
 	if err != nil {
 		panic(err)
 	}
-	defer tx.Rollback()
+	defer func(tx *sql.Tx) {
+		err := tx.Rollback()
+		if err != nil {
+			logger.Log.Error("не удалось откатить транзакцию")
+		}
+	}(tx)
 	query := `
 			CREATE TABLE IF NOT EXISTS metrics (
             	id SERIAL PRIMARY KEY,
