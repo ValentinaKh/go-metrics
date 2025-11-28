@@ -113,7 +113,12 @@ func GzipMW(next http.Handler) http.Handler {
 				return
 			}
 			r.Body = cr
-			defer cr.Close()
+			defer func(cr *compressReader) {
+				err := cr.Close()
+				if err != nil {
+					logger.Log.Error("Error closing compress reader", zap.Error(err))
+				}
+			}(cr)
 		}
 
 		ow := w
@@ -121,7 +126,12 @@ func GzipMW(next http.Handler) http.Handler {
 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			cw := newCompressWriter(w)
 			ow = cw
-			defer cw.Close()
+			defer func(cw *compressWriter) {
+				err := cw.Close()
+				if err != nil {
+					logger.Log.Error("Error closing compress writer", zap.Error(err))
+				}
+			}(cw)
 		}
 
 		next.ServeHTTP(ow, r)
@@ -150,7 +160,10 @@ func ValidateHashMW(secretKey string) func(http.Handler) http.Handler {
 				return
 			}
 
-			r.Body.Close()
+			err = r.Body.Close()
+			if err != nil {
+				return
+			}
 
 			requestHash := utils.Hash(secretKey, body)
 			if !hmac.Equal(hash, requestHash) {
@@ -184,7 +197,10 @@ func HashResponseMW(secretKey string) func(http.Handler) http.Handler {
 			if len(hrw.body) > 0 {
 				hash := utils.Hash(secretKey, hrw.body)
 				w.Header().Set(hashHeader, string(hash))
-				w.Write(hrw.body)
+				_, err := w.Write(hrw.body)
+				if err != nil {
+					return
+				}
 			}
 		})
 	}

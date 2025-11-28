@@ -38,7 +38,10 @@ func TestValidationPostMw(t *testing.T) {
 
 			next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("OK"))
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					return
+				}
 			})
 
 			handler := ValidationPostMw(next)
@@ -50,7 +53,12 @@ func TestValidationPostMw(t *testing.T) {
 			res := w.Result()
 			assert.Equal(t, tt.expectedStatus, w.Code)
 
-			defer res.Body.Close()
+			defer func(Body io.ReadCloser) {
+				err := Body.Close()
+				if err != nil {
+					panic(err)
+				}
+			}(res.Body)
 			resBody, err := io.ReadAll(res.Body)
 
 			require.NoError(t, err)
@@ -120,7 +128,12 @@ func TestValidationURLRqMw(t *testing.T) {
 			assert.Equal(t, tt.expectedStatus, w.Code)
 
 			res := w.Result()
-			defer res.Body.Close()
+			defer func(Body io.ReadCloser) {
+				err := Body.Close()
+				if err != nil {
+					panic(err)
+				}
+			}(res.Body)
 
 			if tt.expectedBody != "" {
 				resBody, err := io.ReadAll(res.Body)
@@ -146,7 +159,10 @@ func TestGzipMW(t *testing.T) {
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(successBody))
+		_, err := w.Write([]byte(successBody))
+		if err != nil {
+			return
+		}
 	})
 
 	handler := GzipMW(next)
@@ -171,7 +187,12 @@ func TestGzipMW(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode)
 
-		defer resp.Body.Close()
+		defer func(r *http.Response) {
+			err := r.Body.Close()
+			if err != nil {
+				panic(err)
+			}
+		}(resp)
 
 		b, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
@@ -188,7 +209,12 @@ func TestGzipMW(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode)
 
-		defer resp.Body.Close()
+		defer func(r *http.Response) {
+			err := r.Body.Close()
+			if err != nil {
+				panic(err)
+			}
+		}(resp)
 
 		zr, err := gzip.NewReader(resp.Body)
 		require.NoError(t, err)
