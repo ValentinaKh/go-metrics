@@ -53,12 +53,12 @@ func TestValidationPostMw(t *testing.T) {
 			res := w.Result()
 			assert.Equal(t, tt.expectedStatus, w.Code)
 
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
+			defer func(r *http.Response) {
+				err := r.Body.Close()
 				if err != nil {
 					panic(err)
 				}
-			}(res.Body)
+			}(res)
 			resBody, err := io.ReadAll(res.Body)
 
 			require.NoError(t, err)
@@ -128,12 +128,12 @@ func TestValidationURLRqMw(t *testing.T) {
 			assert.Equal(t, tt.expectedStatus, w.Code)
 
 			res := w.Result()
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
+			defer func(r *http.Response) {
+				err := r.Body.Close()
 				if err != nil {
 					panic(err)
 				}
-			}(res.Body)
+			}(res)
 
 			if tt.expectedBody != "" {
 				resBody, err := io.ReadAll(res.Body)

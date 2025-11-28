@@ -114,12 +114,12 @@ func TestMetricsHandler(t *testing.T) {
 
 			assert.Equal(t, test.want.code, res.StatusCode)
 
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
+			defer func(r *http.Response) {
+				err := r.Body.Close()
 				if err != nil {
 					panic(err)
 				}
-			}(res.Body)
+			}(res)
 			resBody, err := io.ReadAll(res.Body)
 
 			require.NoError(t, err)
@@ -345,12 +345,12 @@ func TestJsonUpdateMetricHandler(t *testing.T) {
 			r.ServeHTTP(w, request)
 
 			res := w.Result()
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
+			defer func(r *http.Response) {
+				err := r.Body.Close()
 				if err != nil {
 					panic(err)
 				}
-			}(res.Body)
+			}(res)
 
 			assert.Equal(t, test.want.code, res.StatusCode)
 		})
@@ -442,12 +442,12 @@ func Test_GetJsonMetricHandler(t *testing.T) {
 
 			assert.Equal(t, test.want.code, res.StatusCode)
 
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
+			defer func(r *http.Response) {
+				err := r.Body.Close()
 				if err != nil {
 					panic(err)
 				}
-			}(res.Body)
+			}(res)
 			resBody, err := io.ReadAll(res.Body)
 
 			require.NoError(t, err)
