@@ -114,7 +114,12 @@ func TestMetricsHandler(t *testing.T) {
 
 			assert.Equal(t, test.want.code, res.StatusCode)
 
-			defer res.Body.Close()
+			defer func(r *http.Response) {
+				err := r.Body.Close()
+				if err != nil {
+					panic(err)
+				}
+			}(res)
 			resBody, err := io.ReadAll(res.Body)
 
 			require.NoError(t, err)
@@ -182,7 +187,12 @@ func Test_GetMetricHandler(t *testing.T) {
 
 			resp, err := server.Client().Get(server.URL + "/value/counter/custom")
 			assert.NoError(t, err)
-			defer resp.Body.Close()
+			defer func(r *http.Response) {
+				err := r.Body.Close()
+				if err != nil {
+					panic(err)
+				}
+			}(resp)
 
 			assert.Equal(t, test.want.code, resp.StatusCode)
 
@@ -245,7 +255,12 @@ func Test_GetAllMetricsHandler(t *testing.T) {
 
 			resp, err := server.Client().Get(server.URL)
 			assert.NoError(t, err)
-			defer resp.Body.Close()
+			defer func(r *http.Response) {
+				err := r.Body.Close()
+				if err != nil {
+					panic(err)
+				}
+			}(resp)
 
 			assert.Equal(t, test.want.code, resp.StatusCode)
 
@@ -320,7 +335,7 @@ func TestJsonUpdateMetricHandler(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			handler := JSONUpdateMetricHandler(context.TODO(), test.args.service, &audit.Auditor{})
+			handler := JSONUpdateMetricHandler(context.TODO(), test.args.service, audit.NewAuditor(context.Background(), 5))
 			request := httptest.NewRequest(http.MethodPost, "/update", bytes.NewBufferString(test.args.json))
 			w := httptest.NewRecorder()
 
@@ -330,7 +345,12 @@ func TestJsonUpdateMetricHandler(t *testing.T) {
 			r.ServeHTTP(w, request)
 
 			res := w.Result()
-			defer res.Body.Close()
+			defer func(r *http.Response) {
+				err := r.Body.Close()
+				if err != nil {
+					panic(err)
+				}
+			}(res)
 
 			assert.Equal(t, test.want.code, res.StatusCode)
 		})
@@ -422,7 +442,12 @@ func Test_GetJsonMetricHandler(t *testing.T) {
 
 			assert.Equal(t, test.want.code, res.StatusCode)
 
-			defer res.Body.Close()
+			defer func(r *http.Response) {
+				err := r.Body.Close()
+				if err != nil {
+					panic(err)
+				}
+			}(res)
 			resBody, err := io.ReadAll(res.Body)
 
 			require.NoError(t, err)
