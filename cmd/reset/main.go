@@ -211,6 +211,12 @@ func generateReset(field *FieldInfo, fieldName string) string {
 
 	if ptr, ok := typ.(*types.Pointer); ok {
 		elem := ptr.Elem()
+		if named, ok := elem.(*types.Named); ok {
+			obj := named.Obj()
+			if obj.Name() == "Writer" && obj.Pkg().Path() == "compress/gzip" {
+				return fieldName + ".Reset(io.Discard)"
+			}
+		}
 		if _, isStruct := elem.Underlying().(*types.Struct); isStruct {
 			return resetForPointerStruct(fieldName)
 		}
