@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,11 +16,21 @@ import (
 	models "github.com/ValentinaKh/go-metrics/internal/model"
 )
 
+var (
+	buildVersion = "N/A"
+	buildDate    = "N/A"
+	buildCommit  = "N/A"
+)
+
 func main() {
 	run()
 }
 
 func run() {
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date:  %s\n", buildDate)
+	fmt.Printf("Build commit:  %s\n", buildCommit)
+
 	err := logger.InitializeZapLogger("info")
 	if err != nil {
 		panic(err)
