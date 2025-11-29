@@ -101,7 +101,10 @@ func GetMetricHandler(ctx context.Context, service Service) http.HandlerFunc {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Header().Set(name, v)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(v))
+		_, err = w.Write([]byte(v))
+		if err != nil {
+			return
+		}
 	}
 }
 
@@ -138,7 +141,10 @@ func GetJSONMetricHandler(ctx context.Context, service Service) http.HandlerFunc
 		}
 
 		w.WriteHeader(http.StatusOK)
-		w.Write(rs)
+		_, err = w.Write(rs)
+		if err != nil {
+			return
+		}
 	}
 }
 
@@ -156,14 +162,23 @@ func GetAllMetricsHandler(ctx context.Context, service Service) http.HandlerFunc
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
 
-		w.Write([]byte(`<!DOCTYPE html>
+		_, err = w.Write([]byte(`<!DOCTYPE html>
 <html><head><title>Metrics</title></head><body>
 <h1>Metrics</h1>
 <ul>`))
-		for name, m := range values {
-			fmt.Fprintf(w, `<li><strong>%s</strong> %s</li>`, name, m)
+		if err != nil {
+			return
 		}
-		w.Write([]byte(`</ul></body></html>`))
+		for name, m := range values {
+			_, err := fmt.Fprintf(w, `<li><strong>%s</strong> %s</li>`, name, m)
+			if err != nil {
+				return
+			}
+		}
+		_, err = w.Write([]byte(`</ul></body></html>`))
+		if err != nil {
+			return
+		}
 	}
 }
 
