@@ -24,7 +24,12 @@ func run() {
 	if err != nil {
 		panic(err)
 	}
-	defer logger.Log.Sync()
+	defer func(Log *zap.Logger) {
+		err := Log.Sync()
+		if err != nil {
+			logger.Log.Error("Ошибка при закрытии логгера", zap.Error(err))
+		}
+	}(logger.Log)
 
 	logger.Log.Info("Приложение запускается")
 
@@ -44,7 +49,10 @@ func run() {
 	server.ConfigureServer(shutdownCtx, args, db)
 	defer func() {
 		if db != nil {
-			db.Close()
+			err := db.Close()
+			if err != nil {
+				return
+			}
 		}
 	}()
 
