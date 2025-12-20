@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/ValentinaKh/go-metrics/internal/crypto"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -63,7 +62,7 @@ func run() {
 		}
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	defer stop()
 
 	shutdownCtx, cancel := context.WithCancel(context.Background())

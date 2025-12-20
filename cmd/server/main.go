@@ -56,7 +56,7 @@ func run() {
 		}
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	defer stop()
 
 	shutdownCtx, cancel := context.WithCancel(context.Background())
@@ -65,7 +65,7 @@ func run() {
 	if args.ConnStr != "" {
 		db = repository.MustConnectDB(args.ConnStr)
 	}
-	server.ConfigureServer(shutdownCtx, args, db)
+	wg := server.ConfigureServer(shutdownCtx, args, db)
 	defer func() {
 		if db != nil {
 			err := db.Close()
@@ -77,6 +77,7 @@ func run() {
 
 	<-ctx.Done()
 	cancel()
+	wg.Wait()
 
 	logger.Log.Info("Приложение останавливается")
 }

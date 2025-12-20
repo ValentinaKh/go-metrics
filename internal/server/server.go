@@ -3,9 +3,12 @@ package server
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"github.com/ValentinaKh/go-metrics/internal/audit/file"
 	"github.com/ValentinaKh/go-metrics/internal/audit/rest"
+	"go.uber.org/zap"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -25,7 +28,7 @@ import (
 )
 
 // ConfigureServer configure server
-func ConfigureServer(shutdownCtx context.Context, cfg *config.ServerArg, db *sql.DB) {
+func ConfigureServer(shutdownCtx context.Context, cfg *config.ServerArg, db *sql.DB) *sync.WaitGroup {
 	var strg service.Storage
 	var healthService handler.HealthChecker
 
@@ -84,11 +87,12 @@ func ConfigureServer(shutdownCtx context.Context, cfg *config.ServerArg, db *sql
 	if cfg.AuditURL != "" {
 		auditor.Register(rest.NewAuditHandler(cfg.AuditURL))
 	}
-	createServer(shutdownCtx, service.NewMetricsService(strg), healthService, cfg.Host, cfg.Key, cfg.ProfilePort, auditor)
+	return createServer(shutdownCtx, service.NewMetricsService(strg), healthService, cfg.Host, cfg.Key, cfg.ProfilePort, auditor)
 
 }
 
-func createServer(ctx context.Context, metricsService *service.MetricsService, healthService handler.HealthChecker, host, key, port string, publisher audit.Publisher) {
+func createServer(ctx context.Context, metricsService *service.MetricsService, healthService handler.HealthChecker,
+	host, key, port string, publisher audit.Publisher) *sync.WaitGroup {
 	r := chi.NewRouter()
 	r.With(middleware.LoggingMw, middleware.DecryptMW, middleware.ValidateHashMW(key), middleware.GzipMW, middleware.HashResponseMW(key)).Route("/", func(r chi.Router) {
 		r.Get("/", handler.GetAllMetricsHandler(ctx, metricsService))
@@ -101,20 +105,51 @@ func createServer(ctx context.Context, metricsService *service.MetricsService, h
 			r.Get("/ping", handler.HealthHandler(ctx, healthService))
 		}
 	})
-
-	go func() {
-		if err := http.ListenAndServe(port, nil); err != nil && err != http.ErrServerClosed {
-			panic(err)
-		}
-	}()
+	var wg sync.WaitGroup
 
 	srv := &http.Server{
-		Addr:    host,
+		Addr:    port,
 		Handler: r,
 	}
+
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			panic(err)
 		}
 	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		<-ctx.Done()
+		if err := srv.Shutdown(context.Background()); err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				logger.Log.Info("Shutdown timed out, forcing exit")
+			} else {
+				logger.Log.Error("Error during shutdown: ", zap.Error(err))
+			}
+		}
+	}()
+
+	srvMetrics := &http.Server{
+		Addr:    host,
+		Handler: r,
+	}
+	go func() {
+		if err := srvMetrics.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			panic(err)
+		}
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		<-ctx.Done()
+		if err := srvMetrics.Shutdown(context.Background()); err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				logger.Log.Info("Shutdown timed out, forcing exit")
+			} else {
+				logger.Log.Error("Error during shutdown: ", zap.Error(err))
+			}
+		}
+	}()
+	return &wg
 }
