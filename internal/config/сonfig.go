@@ -30,18 +30,21 @@ type ServerArg struct {
 }
 
 type CommonArgs struct {
-	Host string
-	Key  string
+	Host      string
+	Key       string
+	CryptoKey string
 }
 
 func registerCommonFlags(cfg *CommonArgs) {
 	flag.StringVar(&cfg.Host, "a", "localhost:8080", "address for endpoint")
 	flag.StringVar(&cfg.Key, "k", "", "key")
+	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "")
 }
 
 func getCommonEnvVars(cfg *CommonArgs) {
 	cfg.Host = utils.LoadEnvVar("ADDRESS", cfg.Host, func(s string) (string, error) { return s, nil })
 	cfg.Key = utils.LoadEnvVar("KEY", cfg.Key, func(s string) (string, error) { return s, nil })
+	cfg.CryptoKey = utils.LoadEnvVar("CRYPTO_KEY", cfg.CryptoKey, func(s string) (string, error) { return s, nil })
 }
 
 func MustParseAgentArgs() *AgentArg {

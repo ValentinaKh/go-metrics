@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/ValentinaKh/go-metrics/internal/crypto"
 	"os"
 	"os/signal"
 	"syscall"
@@ -54,6 +55,13 @@ func run() {
 		panic(err)
 	}
 	logger.Log.Info("Приложение работает с настройками", zap.Any("Настройки", args))
+
+	if args.CryptoKey != "" {
+		err = crypto.InitCertificate(args.CryptoKey)
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"fmt"
+	"github.com/ValentinaKh/go-metrics/internal/crypto"
 	"net/url"
 
 	"github.com/go-resty/resty/v2"
@@ -49,6 +50,10 @@ func (s *HTTPSender) Send(data []byte) error {
 		if s.secureKey != "" {
 			hash := utils.Hash(s.secureKey, body)
 			prep.SetHeader("HashSHA256", fmt.Sprintf("%x", hash))
+		}
+		body, err := crypto.Encrypt(body)
+		if err != nil {
+			return nil, err
 		}
 		return prep.SetBody(body).Post(s.url)
 	})
