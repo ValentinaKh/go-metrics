@@ -2,27 +2,35 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
-	"strconv"
-
+	"fmt"
+	"github.com/ValentinaKh/go-metrics/internal/logger"
 	"github.com/ValentinaKh/go-metrics/internal/utils"
+	"go.uber.org/zap"
+	"os"
+	"strconv"
 )
+
+type Basic interface {
+	string | bool | int | uint64
+}
 
 // AgentArg  - agent config
 type AgentArg struct {
 	CommonArgs
-	ReportInterval uint64
-	PollInterval   uint64
+	ReportInterval uint64 `json:"report_interval"`
+	PollInterval   uint64 `json:"poll_interval"`
 	RateLimit      uint64
 }
 
 // ServerArg - server config
 type ServerArg struct {
 	CommonArgs
-	Interval       uint64
-	File           string
-	Restore        bool
-	ConnStr        string
+	Interval       uint64 `json:"store_interval"`
+	File           string `json:"store_file"`
+	Restore        bool   `json:"restore"`
+	ConnStr        string `json:"database_dsn"`
 	AuditFile      string
 	AuditURL       string
 	ProfilePort    string
@@ -30,9 +38,9 @@ type ServerArg struct {
 }
 
 type CommonArgs struct {
-	Host      string
-	Key       string
-	CryptoKey string
+	Host      string `json:"address"`
+	Key       string `json:"key"`
+	CryptoKey string `json:"crypto_key"`
 }
 
 func registerCommonFlags(cfg *CommonArgs) {
@@ -49,11 +57,15 @@ func getCommonEnvVars(cfg *CommonArgs) {
 
 func MustParseAgentArgs() *AgentArg {
 	var cfg AgentArg
+	path := getConfigPath()
+	if path != "" {
+		cfg = loadConfigFile[AgentArg](path)
+	}
 
 	registerCommonFlags(&cfg.CommonArgs)
-	flag.Uint64Var(&cfg.ReportInterval, "r", 10, "reportInterval")
-	flag.Uint64Var(&cfg.PollInterval, "p", 2, "pollInterval")
-	flag.Uint64Var(&cfg.RateLimit, "l", 2, "rateLimit")
+	flag.Uint64Var(&cfg.ReportInterval, "r", configOrDefault(cfg.ReportInterval, 10), "reportInterval")
+	flag.Uint64Var(&cfg.PollInterval, "p", configOrDefault(cfg.PollInterval, 2), "pollInterval")
+	flag.Uint64Var(&cfg.RateLimit, "l", configOrDefault(cfg.RateLimit, 2), "rateLimit")
 
 	flag.Parse()
 
@@ -67,15 +79,19 @@ func MustParseAgentArgs() *AgentArg {
 
 func MustParseServerArgs() *ServerArg {
 	var cfg ServerArg
+	path := getConfigPath()
+	if path != "" {
+		cfg = loadConfigFile[ServerArg](path)
+	}
 
 	registerCommonFlags(&cfg.CommonArgs)
-	flag.StringVar(&cfg.ConnStr, "d", "", "key")
-	flag.Uint64Var(&cfg.Interval, "i", 300, "store interval")
-	flag.Uint64Var(&cfg.AuditQueueSize, "b", 300, "audit quqeue size")
-	flag.StringVar(&cfg.File, "f", "metrics.json", "file name")
-	flag.StringVar(&cfg.AuditFile, "audit-file", "metrics1.json", "file name")
+	flag.StringVar(&cfg.ConnStr, "d", cfg.ConnStr, "key")
+	flag.Uint64Var(&cfg.Interval, "i", configOrDefault(cfg.Interval, 300), "store interval")
+	flag.Uint64Var(&cfg.AuditQueueSize, "b", 300, "audit queue size")
+	flag.StringVar(&cfg.File, "f", configOrDefault(cfg.File, "metrics.json"), "file name")
+	flag.StringVar(&cfg.AuditFile, "audit-file", "audit.json", "file name")
 	flag.StringVar(&cfg.AuditURL, "audit-url", "http://localhost:8080", "url")
-	flag.BoolVar(&cfg.Restore, "r", true, "load history")
+	flag.BoolVar(&cfg.Restore, "r", configOrDefault(cfg.Restore, true), "load history")
 
 	flag.Parse()
 
@@ -95,3 +111,45 @@ func MustParseServerArgs() *ServerArg {
 func strParser(s string) (string, error)  { return s, nil }
 func uintParser(s string) (uint64, error) { return strconv.ParseUint(s, 10, 64) }
 func boolParser(s string) (bool, error)   { return strconv.ParseBool(s) }
+
+func getConfigPath() string {
+	var path string
+	for i, arg := range os.Args {
+		if arg == "-c" || arg == "-config" {
+			if i+1 < len(os.Args) {
+				path = os.Args[i+1]
+				break
+			}
+		}
+	}
+	return utils.LoadEnvVar("CONFIG", path, strParser)
+}
+
+func loadConfigFile[T any](path string) T {
+	f, err := os.Open(path)
+	if err != nil {
+		panic(fmt.Errorf("can't open config file: %w", err))
+	}
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			logger.Log.Error("can't close config file", zap.Error(err))
+		}
+	}(f)
+
+	decoder := json.NewDecoder(f)
+
+	var cfg T
+	if err := decoder.Decode(&cfg); err != nil {
+		panic(fmt.Errorf("can't parse config file: %w", err))
+	}
+	return cfg
+}
+
+func configOrDefault[T Basic](configVal T, defaultVal T) T {
+	var zero T
+	if configVal != zero {
+		return configVal
+	}
+	return defaultVal
+}
