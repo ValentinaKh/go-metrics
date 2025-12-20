@@ -3,20 +3,24 @@ package middleware
 
 import (
 	"compress/gzip"
+	"github.com/ValentinaKh/go-metrics/internal/pool"
 	"io"
 	"net/http"
-	"sync"
 )
 
-var gzipWriterPool = sync.Pool{
-	New: func() interface{} {
-		return gzip.NewWriter(io.Discard)
-	},
+// generate:reset
+type GzipWriter struct {
+	s *gzip.Writer
 }
+
+var gzipWriterPool = pool.New(func() *GzipWriter {
+	gw := gzip.NewWriter(io.Discard)
+	return &GzipWriter{s: gw}
+})
 
 type compressWriter struct {
 	w    http.ResponseWriter
-	zw   *gzip.Writer
+	zw   *GzipWriter
 	init bool
 }
 
@@ -28,8 +32,8 @@ func (c *compressWriter) initWriter() {
 	if c.init {
 		return
 	}
-	zw := gzipWriterPool.Get().(*gzip.Writer)
-	zw.Reset(c.w)
+	zw := gzipWriterPool.Get()
+	zw.s.Reset(c.w)
 	c.zw = zw
 	c.init = true
 }
@@ -38,7 +42,7 @@ func (c *compressWriter) Write(p []byte) (int, error) {
 	if !c.init {
 		c.initWriter()
 	}
-	return c.zw.Write(p)
+	return c.zw.s.Write(p)
 }
 
 func (c *compressWriter) WriteHeader(statusCode int) {
@@ -53,8 +57,7 @@ func (c *compressWriter) Close() error {
 	if !c.init {
 		return nil
 	}
-	err := c.zw.Close()
-	c.zw.Reset(io.Discard)
+	err := c.zw.s.Close()
 	gzipWriterPool.Put(c.zw)
 	c.zw = nil
 	c.init = false

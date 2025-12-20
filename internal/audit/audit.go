@@ -33,12 +33,17 @@ func (e *Auditor) Register(o observer) {
 	e.observers = append(e.observers, o)
 }
 
-// Notify вызывает метод update у всех наблюдателей, оповещает об изменении метрики
-func (e *Auditor) Notify(request []models.Metrics, ip string) {
+func (e *Auditor) notify(request []models.Metrics, ip string) {
 	for _, observer := range e.observers {
 		observer.Update(request, ip)
 	}
 }
+
+// Notify вызывает метод update у всех наблюдателей, оповещает об изменении метрики
+func (e *Auditor) Notify(request []models.Metrics, ip string) {
+	e.tasks <- task{request, ip}
+}
+
 func (e *Auditor) startWorker(ctx context.Context) {
 	go func() {
 		for {
@@ -47,7 +52,7 @@ func (e *Auditor) startWorker(ctx context.Context) {
 				if !ok {
 					return
 				}
-				e.Notify(task.metrics, task.ip)
+				e.notify(task.metrics, task.ip)
 			case <-ctx.Done():
 				return
 			}
