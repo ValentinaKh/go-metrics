@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/ValentinaKh/go-metrics/internal/crypto"
 	"os/signal"
 	"syscall"
 	"time"
@@ -55,13 +54,6 @@ func run() {
 	}
 	logger.Log.Info("Приложение работает с настройками", zap.Any("Настройки", args))
 
-	if args.CryptoKey != "" {
-		err = crypto.InitCertificate(args.CryptoKey)
-		if err != nil {
-			panic(err)
-		}
-	}
-
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	defer stop()
 
@@ -69,7 +61,10 @@ func run() {
 
 	mChan := make(chan []models.Metrics, 10)
 
-	wgGroup := agent.ConfigureAgent(shutdownCtx, args, retryConfig, mChan)
+	wgGroup, err := agent.ConfigureAgent(shutdownCtx, args, retryConfig, mChan)
+	if err != nil {
+		logger.Log.Fatal("Ошибка при конфигурации агента", zap.Error(err))
+	}
 
 	<-ctx.Done()
 	cancel()

@@ -3,6 +3,7 @@ package middleware
 import (
 	"bytes"
 	"crypto/hmac"
+	"crypto/rsa"
 	"encoding/hex"
 	"fmt"
 	"github.com/ValentinaKh/go-metrics/internal/crypto"
@@ -207,29 +208,34 @@ func HashResponseMW(secretKey string) func(http.Handler) http.Handler {
 	}
 }
 
-func DecryptMW(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			logger.Log.Error("Failed to read request body", zap.Error(err))
-			http.Error(w, "Failed to read request body", http.StatusBadRequest)
-			return
-		}
-		err = r.Body.Close()
-		if err != nil {
-			http.Error(w, "Failed to close body", http.StatusBadRequest)
-			return
-		}
+func DecryptMW(cs *crypto.CryptoService[*rsa.PrivateKey, *rsa.PrivateKey]) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				logger.Log.Error("Failed to read request body", zap.Error(err))
+				http.Error(w, "Failed to read request body", http.StatusBadRequest)
+				return
+			}
+			err = r.Body.Close()
+			if err != nil {
+				http.Error(w, "Failed to close body", http.StatusBadRequest)
+				return
+			}
 
-		decrypted, err := crypto.Decrypt(body)
-		if err != nil {
-			logger.Log.Error("Failed to decrypt body", zap.Error(err))
-			http.Error(w, "Failed to decrypt request body", http.StatusBadRequest)
-			return
-		}
+			var decrypted = body
+			if cs != nil {
+				decrypted, err = cs.Transform(body)
+				if err != nil {
+					logger.Log.Error("Failed to decrypt body", zap.Error(err))
+					http.Error(w, "Failed to decrypt request body", http.StatusBadRequest)
+					return
+				}
+			}
 
-		r.Body = io.NopCloser(bytes.NewReader(decrypted))
+			r.Body = io.NopCloser(bytes.NewReader(decrypted))
 
-		next.ServeHTTP(w, r)
-	})
+			next.ServeHTTP(w, r)
+		})
+	}
 }

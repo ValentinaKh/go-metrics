@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -58,89 +59,43 @@ func randomSerial() *big.Int {
 	return serial
 }
 
-func TestInitCertificate_Valid(t *testing.T) {
-	pubPath, _ := createTestKeys(t)
+func TestLoadCertificate_Valid(t *testing.T) {
+	pubPath, privatePath := createTestKeys(t)
 
-	err := InitCertificate(pubPath)
-	if err != nil {
-		t.Fatalf("InitCertificate failed: %v", err)
-	}
-	if public == nil {
-		t.Fatal("public key should not be nil")
-	}
+	cert, err := loadKey[*x509.Certificate](pubPath, x509.ParseCertificate)
+	assert.NoError(t, err)
+	assert.NotNil(t, cert)
+
+	cert1, err1 := loadKey[*rsa.PrivateKey](privatePath, x509.ParsePKCS1PrivateKey)
+	assert.NoError(t, err1)
+	assert.NotNil(t, cert1)
+
 }
 
-func TestInitCertificate_InvalidPath(t *testing.T) {
-	err := InitCertificate("/test/path.pem")
-	if err == nil {
-		t.Fatal("Expected error for non-existent file")
-	}
-}
-
-func TestInitPrivateKey_Valid(t *testing.T) {
-	_, privatePath := createTestKeys(t)
-
-	err := InitPrivateKey(privatePath)
-	if err != nil {
-		t.Fatalf("InitPrivateKey failed: %v", err)
-	}
-	if private == nil {
-		t.Fatal("private key should not be nil")
-	}
-}
-
-func TestInitPrivateKey_InvalidPath(t *testing.T) {
-	err := InitPrivateKey("/test/path.pem")
-	if err == nil {
-		t.Fatal("Expected error for non-existent file")
-	}
+func TestLoadCertificate_InvalidPath(t *testing.T) {
+	cert, err := loadKey[*x509.Certificate]("/test/path.pem", x509.ParseCertificate)
+	assert.Error(t, err)
+	assert.Nil(t, cert)
 }
 
 func TestEncryptDecrypt(t *testing.T) {
 	pubPath, privatePath := createTestKeys(t)
 
-	if err := InitCertificate(pubPath); err != nil {
+	public, err := NewPublicKeyService(pubPath)
+	if err != nil {
 		t.Fatalf("InitCertificate: %v", err)
 	}
-	if err := InitPrivateKey(privatePath); err != nil {
+	private, err := NewPrivateKeyService(privatePath)
+	if err != nil {
 		t.Fatalf("InitPrivateKey: %v", err)
 	}
 
 	original := []byte("secret message")
 
-	encrypted, err := Encrypt(original)
-	if err != nil {
-		t.Fatalf("Encrypt failed: %v", err)
-	}
+	encrypted, err := public.Transform(original)
+	require.NoError(t, err)
 
-	decrypted, err := Decrypt(encrypted)
-	if err != nil {
-		t.Fatalf("Decrypt failed: %v", err)
-	}
-
-	if string(decrypted) != string(original) {
-		t.Errorf("Decrypted != Original: got %q, want %q", decrypted, original)
-	}
-}
-
-func TestEncrypt_WithNoPublicKey(t *testing.T) {
-	public = nil
-
-	msg := []byte("test")
-	encrypted, err := Encrypt(msg)
-	if err != nil {
-		t.Fatalf("Encrypt with nil public key should not fail (per your code), got error: %v", err)
-	}
-	assert.Equal(t, string(msg), string(encrypted), "Expected original message when public is nil")
-}
-
-func TestDecrypt_WithNoPrivateKey(t *testing.T) {
-	private = nil
-
-	msg := []byte("test")
-	decrypted, err := Decrypt(msg)
-	if err != nil {
-		t.Fatalf("Decrypt with nil private key should not fail, got error: %v", err)
-	}
-	assert.Equal(t, string(msg), string(decrypted), "Expected original message when private is nil")
+	decrypted, err := private.Transform(encrypted)
+	require.NoError(t, err)
+	require.Equal(t, original, decrypted)
 }

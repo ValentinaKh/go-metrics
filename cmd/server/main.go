@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/ValentinaKh/go-metrics/internal/crypto"
 	"os"
 	"os/signal"
 	"syscall"
@@ -49,13 +48,6 @@ func run() {
 
 	logger.Log.Info("Приложение работает с настройками", zap.Any("Настройки", args))
 
-	if args.CryptoKey != "" {
-		err := crypto.InitPrivateKey(args.CryptoKey)
-		if err != nil {
-			panic(err)
-		}
-	}
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	defer stop()
 
@@ -65,7 +57,10 @@ func run() {
 	if args.ConnStr != "" {
 		db = repository.MustConnectDB(args.ConnStr)
 	}
-	wg := server.ConfigureServer(shutdownCtx, args, db)
+	wg, err := server.ConfigureServer(shutdownCtx, args, db)
+	if err != nil {
+		logger.Log.Fatal("Ошибка при запуске сервера", zap.Error(err))
+	}
 	defer func() {
 		if db != nil {
 			err := db.Close()

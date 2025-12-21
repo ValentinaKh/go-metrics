@@ -236,20 +236,20 @@ func TestGzipMW(t *testing.T) {
 
 func TestDecryptMW_Success(t *testing.T) {
 
-	public, privatePath := createTestKeys(t)
-	if err := crypto.InitCertificate(public); err != nil {
-		t.Fatalf("InitCertificate failed: %v", err)
-	}
-	if err := crypto.InitPrivateKey(privatePath); err != nil {
-		t.Fatalf("InitPrivateKey failed: %v", err)
-	}
+	pubPath, privatePath := createTestKeys(t)
+
+	public, err := crypto.NewPublicKeyService(pubPath)
+	require.NoError(t, err)
+
+	private, err := crypto.NewPrivateKeyService(privatePath)
+	require.NoError(t, err)
 
 	originalMsg := []byte(`{
   						"id": "LastGC",
   						"type": "gauge",
   						"value": 1744184459
 					}`)
-	encrypted, err := crypto.Encrypt(originalMsg)
+	encrypted, err := public.Transform(originalMsg)
 	if err != nil {
 		t.Fatalf("Encrypt failed: %v", err)
 	}
@@ -261,12 +261,13 @@ func TestDecryptMW_Success(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	handler := DecryptMW(orHandler)
+	handler := DecryptMW(private)
+	wh := handler(orHandler)
 
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(encrypted))
 	w := httptest.NewRecorder()
 
-	handler.ServeHTTP(w, req)
+	wh.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, originalMsg, receivedBody)
 }
@@ -275,15 +276,16 @@ func TestDecryptMW_DecryptError(t *testing.T) {
 	w := httptest.NewRecorder()
 	_, privatePath := createTestKeys(t)
 
-	if err := crypto.InitPrivateKey(privatePath); err != nil {
-		t.Fatalf("InitPrivateKey failed: %v", err)
-	}
+	private, err := crypto.NewPrivateKeyService(privatePath)
+	require.NoError(t, err)
 
-	handler := DecryptMW(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := DecryptMW(private)
+
+	wh := handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("Next handler should not be called")
 	}))
 
-	handler.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte("test"))))
+	wh.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte("test"))))
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }

@@ -3,6 +3,9 @@ package agent
 
 import (
 	"context"
+	"crypto/rsa"
+	"crypto/x509"
+	"github.com/ValentinaKh/go-metrics/internal/crypto"
 	"sync"
 	"time"
 
@@ -17,9 +20,18 @@ import (
 )
 
 // ConfigureAgent - создает и запускает агента.
-func ConfigureAgent(shutdownCtx context.Context, cfg *config.AgentArg, rCfg *config.RetryConfig, mChan chan []models.Metrics) *sync.WaitGroup {
+func ConfigureAgent(shutdownCtx context.Context, cfg *config.AgentArg, rCfg *config.RetryConfig, mChan chan []models.Metrics) (*sync.WaitGroup, error) {
 	st := storage.NewMemStorage()
 	metricPublisher, msgCh := NewMetricsPublisher(st, time.Duration(cfg.ReportInterval)*time.Second)
+
+	var cs *crypto.CryptoService[*x509.Certificate, *rsa.PublicKey]
+	var err error
+	if cfg.CryptoKey != "" {
+		cs, err = crypto.NewPublicKeyService(cfg.CryptoKey)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	var wg sync.WaitGroup
 	for idx := 0; idx < int(cfg.RateLimit); idx++ {
@@ -30,7 +42,7 @@ func ConfigureAgent(shutdownCtx context.Context, cfg *config.AgentArg, rCfg *con
 				retry.NewRetrier(
 					retry.NewClassifierRetryPolicy(apperror.NewNetworkErrorClassifier(), rCfg.MaxAttempts),
 					retry.NewStaticDelayStrategy(rCfg.Delays),
-					&retry.SleepTimeProvider{}), cfg.Key), msgCh).
+					&retry.SleepTimeProvider{}), cfg.Key, cs), msgCh).
 				Push(shutdownCtx)
 		}()
 	}
@@ -55,5 +67,5 @@ func ConfigureAgent(shutdownCtx context.Context, cfg *config.AgentArg, rCfg *con
 	go metricPublisher.Publish(shutdownCtx)
 	go w.Write(shutdownCtx)
 
-	return &wg
+	return &wg, nil
 }
