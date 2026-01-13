@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"github.com/ValentinaKh/go-metrics/internal/crypto"
+	"net"
 	"net/url"
 
 	"github.com/go-resty/resty/v2"
@@ -25,11 +26,16 @@ type HTTPSender struct {
 	retrier   *retry.Retrier
 	secureKey string
 	cs        *crypto.CryptoService[*x509.Certificate, *rsa.PublicKey]
+	ip        net.IP
 }
 
-func NewPostSender(host string, retrier *retry.Retrier, secureKey string,
+func MustNewPostSender(host string, retrier *retry.Retrier, secureKey string,
 	cs *crypto.CryptoService[*x509.Certificate, *rsa.PublicKey]) *HTTPSender {
-	return &HTTPSender{client: resty.New(), url: buildURL(host), retrier: retrier, secureKey: secureKey, cs: cs}
+	ip, err := getLocalIP()
+	if err != nil {
+		panic(err)
+	}
+	return &HTTPSender{client: resty.New(), url: buildURL(host), retrier: retrier, secureKey: secureKey, cs: cs, ip: ip}
 }
 
 // Send - Отправляет сжатые по gzip, а так же подписанные, если задан ключ, SHA256 данные на сервер.
@@ -49,7 +55,7 @@ func (s *HTTPSender) Send(data []byte) error {
 	response, err := retry.DoWithRetry(context.TODO(), s.retrier, func() (*resty.Response, error) {
 		body := compressedBody.Bytes()
 		prep := s.client.R().
-			SetHeaders(map[string]string{"Content-Type": "application/json", "Content-Encoding": "gzip"})
+			SetHeaders(map[string]string{"Content-Type": "application/json", "Content-Encoding": "gzip", "X-Real-IP": s.ip.String()})
 
 		if s.secureKey != "" {
 			hash := utils.Hash(s.secureKey, body)
@@ -81,4 +87,21 @@ func buildURL(host string) string {
 		Path:   "/updates/",
 	}
 	return u.String()
+}
+
+func getLocalIP() (net.IP, error) {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return nil, err
+	}
+	defer func(conn net.Conn) {
+		err := conn.Close()
+		if err != nil {
+			logger.Log.Error("Error closing connection", zap.Error(err))
+		}
+	}(conn)
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	return localAddr.IP, nil
 }

@@ -35,6 +35,7 @@ type ServerArg struct {
 	AuditURL       string
 	ProfilePort    string
 	AuditQueueSize uint64
+	TrustedSubnet  string `json:"trusted_subnet"`
 }
 
 type CommonArgs struct {
@@ -92,6 +93,7 @@ func MustParseServerArgs() *ServerArg {
 	flag.StringVar(&cfg.AuditFile, "audit-file", "audit.json", "file name")
 	flag.StringVar(&cfg.AuditURL, "audit-url", "http://localhost:8080", "url")
 	flag.BoolVar(&cfg.Restore, "r", configOrDefault(cfg.Restore, true), "load history")
+	flag.StringVar(&cfg.TrustedSubnet, "t", configOrDefault(cfg.TrustedSubnet, ""), "TrustedSubnet")
 
 	flag.Parse()
 
@@ -104,6 +106,7 @@ func MustParseServerArgs() *ServerArg {
 	cfg.AuditURL = utils.LoadEnvVar("PROFILE_PORT", cfg.ProfilePort, strParser)
 	cfg.Interval = utils.LoadEnvVar("STORE_INTERVAL", cfg.Interval, uintParser)
 	cfg.Restore = utils.LoadEnvVar("RESTORE", cfg.Restore, boolParser)
+	cfg.TrustedSubnet = utils.LoadEnvVar("TRUSTED_SUBNET", cfg.TrustedSubnet, strParser)
 
 	return &cfg
 }
