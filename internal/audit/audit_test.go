@@ -5,7 +5,6 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"sync"
 	"testing"
 	"time"
 )
@@ -13,28 +12,25 @@ import (
 func float64Ptr(v float64) *float64 { return &v }
 
 type mockObserver struct {
-	sync.RWMutex
-	metrics []models.Metrics
-	ip      string
+	updates chan task
 }
 
+func newMockObserver() *mockObserver {
+	return &mockObserver{
+		updates: make(chan task, 1),
+	}
+}
 func (m *mockObserver) Update(metrics []models.Metrics, ip string) {
-	m.Lock()
-	defer m.Unlock()
-	m.metrics = metrics
-	m.ip = ip
+	m.updates <- task{metrics, ip}
 }
 
-func (m *mockObserver) GetMetrics() []models.Metrics {
-	m.RLock()
-	defer m.RUnlock()
-	return m.metrics
-}
-
-func (m *mockObserver) GetIP() string {
-	m.RLock()
-	defer m.RUnlock()
-	return m.ip
+func (m *mockObserver) AwaitUpdate(timeout time.Duration) (*task, bool) {
+	select {
+	case res := <-m.updates:
+		return &res, true
+	case <-time.After(timeout):
+		return nil, false
+	}
 }
 
 func TestAuditor_RegisterAndAsyncNotify(t *testing.T) {
@@ -42,7 +38,7 @@ func TestAuditor_RegisterAndAsyncNotify(t *testing.T) {
 	defer cancel()
 
 	auditor := NewAuditor(ctx, 10)
-	observer := &mockObserver{}
+	observer := newMockObserver()
 	auditor.Register(observer)
 
 	metrics := []models.Metrics{
@@ -52,10 +48,8 @@ func TestAuditor_RegisterAndAsyncNotify(t *testing.T) {
 
 	auditor.Notify(metrics, ip)
 
-	require.Eventually(t, func() bool {
-		return len(observer.metrics) == 1
-	}, 500*time.Millisecond, 10*time.Millisecond)
-
-	assert.Equal(t, metrics, observer.GetMetrics())
-	assert.Equal(t, ip, observer.GetIP())
+	task, ok := observer.AwaitUpdate(500 * time.Millisecond)
+	require.True(t, ok)
+	assert.Equal(t, metrics, task.metrics)
+	assert.Equal(t, ip, task.ip)
 }
