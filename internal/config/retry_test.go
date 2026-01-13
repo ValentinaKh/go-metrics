@@ -1,4 +1,4 @@
-package config // Замените на имя вашего пакета
+package config
 
 import (
 	"testing"
