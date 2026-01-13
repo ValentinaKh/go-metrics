@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -55,14 +54,17 @@ func run() {
 	}
 	logger.Log.Info("Приложение работает с настройками", zap.Any("Настройки", args))
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	defer stop()
 
 	shutdownCtx, cancel := context.WithCancel(context.Background())
 
 	mChan := make(chan []models.Metrics, 10)
 
-	wgGroup := agent.ConfigureAgent(shutdownCtx, args, retryConfig, mChan)
+	wgGroup, err := agent.ConfigureAgent(shutdownCtx, args, retryConfig, mChan)
+	if err != nil {
+		logger.Log.Fatal("Ошибка при конфигурации агента", zap.Error(err))
+	}
 
 	<-ctx.Done()
 	cancel()

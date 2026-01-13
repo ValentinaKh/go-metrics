@@ -44,20 +44,23 @@ func run() {
 
 	logger.Log.Info("Приложение запускается")
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	shutdownCtx, cancel := context.WithCancel(context.Background())
-
 	args := config.MustParseServerArgs()
 
 	logger.Log.Info("Приложение работает с настройками", zap.Any("Настройки", args))
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	defer stop()
+
+	shutdownCtx, cancel := context.WithCancel(context.Background())
 
 	var db *sql.DB
 	if args.ConnStr != "" {
 		db = repository.MustConnectDB(args.ConnStr)
 	}
-	server.ConfigureServer(shutdownCtx, args, db)
+	wg, err := server.ConfigureServer(shutdownCtx, args, db)
+	if err != nil {
+		logger.Log.Fatal("Ошибка при запуске сервера", zap.Error(err))
+	}
 	defer func() {
 		if db != nil {
 			err := db.Close()
@@ -69,6 +72,7 @@ func run() {
 
 	<-ctx.Done()
 	cancel()
+	wg.Wait()
 
 	logger.Log.Info("Приложение останавливается")
 }

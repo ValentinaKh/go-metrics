@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/rsa"
+	"crypto/x509"
 	"fmt"
+	"github.com/ValentinaKh/go-metrics/internal/crypto"
 	"net/url"
 
 	"github.com/go-resty/resty/v2"
@@ -21,10 +24,12 @@ type HTTPSender struct {
 	url       string
 	retrier   *retry.Retrier
 	secureKey string
+	cs        *crypto.CryptoService[*x509.Certificate, *rsa.PublicKey]
 }
 
-func NewPostSender(host string, retrier *retry.Retrier, secureKey string) *HTTPSender {
-	return &HTTPSender{client: resty.New(), url: buildURL(host), retrier: retrier, secureKey: secureKey}
+func NewPostSender(host string, retrier *retry.Retrier, secureKey string,
+	cs *crypto.CryptoService[*x509.Certificate, *rsa.PublicKey]) *HTTPSender {
+	return &HTTPSender{client: resty.New(), url: buildURL(host), retrier: retrier, secureKey: secureKey, cs: cs}
 }
 
 // Send - Отправляет сжатые по gzip, а так же подписанные, если задан ключ, SHA256 данные на сервер.
@@ -49,6 +54,12 @@ func (s *HTTPSender) Send(data []byte) error {
 		if s.secureKey != "" {
 			hash := utils.Hash(s.secureKey, body)
 			prep.SetHeader("HashSHA256", fmt.Sprintf("%x", hash))
+		}
+		if s.cs != nil {
+			body, err = s.cs.Transform(body)
+			if err != nil {
+				return nil, err
+			}
 		}
 		return prep.SetBody(body).Post(s.url)
 	})

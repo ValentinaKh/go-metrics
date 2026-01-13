@@ -29,7 +29,7 @@ func TestNewPostSender(t *testing.T) {
 		&retry.SleepTimeProvider{},
 	)
 
-	sender := NewPostSender(host, retrier, secureKey)
+	sender := NewPostSender(host, retrier, secureKey, nil)
 
 	require.NotNil(t, sender)
 

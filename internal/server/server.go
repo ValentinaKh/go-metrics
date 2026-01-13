@@ -2,10 +2,15 @@ package server
 
 import (
 	"context"
+	"crypto/rsa"
 	"database/sql"
+	"errors"
 	"github.com/ValentinaKh/go-metrics/internal/audit/file"
 	"github.com/ValentinaKh/go-metrics/internal/audit/rest"
+	"github.com/ValentinaKh/go-metrics/internal/crypto"
+	"go.uber.org/zap"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -25,7 +30,7 @@ import (
 )
 
 // ConfigureServer configure server
-func ConfigureServer(shutdownCtx context.Context, cfg *config.ServerArg, db *sql.DB) {
+func ConfigureServer(shutdownCtx context.Context, cfg *config.ServerArg, db *sql.DB) (*sync.WaitGroup, error) {
 	var strg service.Storage
 	var healthService handler.HealthChecker
 
@@ -84,13 +89,27 @@ func ConfigureServer(shutdownCtx context.Context, cfg *config.ServerArg, db *sql
 	if cfg.AuditURL != "" {
 		auditor.Register(rest.NewAuditHandler(cfg.AuditURL))
 	}
-	createServer(shutdownCtx, service.NewMetricsService(strg), healthService, cfg.Host, cfg.Key, cfg.ProfilePort, auditor)
+	var cs *crypto.CryptoService[*rsa.PrivateKey, *rsa.PrivateKey]
+	var err error
+	if cfg.CryptoKey != "" {
+		cs, err = crypto.NewPrivateKeyService(cfg.CryptoKey)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return createServer(shutdownCtx, service.NewMetricsService(strg),
+		healthService, cfg.Host, cfg.Key, cfg.ProfilePort, auditor, cs), nil
 
 }
 
-func createServer(ctx context.Context, metricsService *service.MetricsService, healthService handler.HealthChecker, host, key, port string, publisher audit.Publisher) {
+func createServer(ctx context.Context,
+	metricsService *service.MetricsService,
+	healthService handler.HealthChecker,
+	host, key, profileHost string,
+	publisher audit.Publisher,
+	cs *crypto.CryptoService[*rsa.PrivateKey, *rsa.PrivateKey]) *sync.WaitGroup {
 	r := chi.NewRouter()
-	r.With(middleware.LoggingMw, middleware.ValidateHashMW(key), middleware.GzipMW, middleware.HashResponseMW(key)).Route("/", func(r chi.Router) {
+	r.With(middleware.LoggingMw, middleware.DecryptMW(cs), middleware.ValidateHashMW(key), middleware.GzipMW, middleware.HashResponseMW(key)).Route("/", func(r chi.Router) {
 		r.Get("/", handler.GetAllMetricsHandler(ctx, metricsService))
 		r.With(middleware.ValidationURLRqMw).Post("/update/{type}/{name}/{value}", handler.MetricsHandler(ctx, metricsService))
 		r.Post("/update/", handler.JSONUpdateMetricHandler(ctx, metricsService, publisher))
@@ -101,20 +120,36 @@ func createServer(ctx context.Context, metricsService *service.MetricsService, h
 			r.Get("/ping", handler.HealthHandler(ctx, healthService))
 		}
 	})
+	var wg sync.WaitGroup
 
-	go func() {
-		if err := http.ListenAndServe(port, nil); err != nil && err != http.ErrServerClosed {
-			panic(err)
-		}
-	}()
+	runServer(ctx, host, r, &wg)
 
+	runServer(ctx, profileHost, r, &wg)
+
+	return &wg
+}
+
+func runServer(ctx context.Context, host string, r *chi.Mux, wg *sync.WaitGroup) {
 	srv := &http.Server{
 		Addr:    host,
 		Handler: r,
 	}
+
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			panic(err)
+		}
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		<-ctx.Done()
+		if err := srv.Shutdown(context.Background()); err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				logger.Log.Info("Shutdown timed out, forcing exit")
+			} else {
+				logger.Log.Error("Error during shutdown: ", zap.Error(err))
+			}
 		}
 	}()
 }
