@@ -97,8 +97,15 @@ func ConfigureServer(shutdownCtx context.Context, cfg *config.ServerArg, db *sql
 			return nil, err
 		}
 	}
+	var ip *middleware.TrustedIP
+	if cfg.TrustedSubnet != "" {
+		ip, err = middleware.NewTrustedIP(cfg.TrustedSubnet)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return createServer(shutdownCtx, service.NewMetricsService(strg),
-		healthService, cfg.Host, cfg.Key, cfg.ProfilePort, auditor, cs), nil
+		healthService, cfg.Host, cfg.Key, cfg.ProfilePort, auditor, cs, ip), nil
 
 }
 
@@ -107,9 +114,10 @@ func createServer(ctx context.Context,
 	healthService handler.HealthChecker,
 	host, key, profileHost string,
 	publisher audit.Publisher,
-	cs *crypto.CryptoService[*rsa.PrivateKey, *rsa.PrivateKey]) *sync.WaitGroup {
+	cs *crypto.CryptoService[*rsa.PrivateKey, *rsa.PrivateKey],
+	ip *middleware.TrustedIP) *sync.WaitGroup {
 	r := chi.NewRouter()
-	r.With(middleware.LoggingMw, middleware.DecryptMW(cs), middleware.ValidateHashMW(key), middleware.GzipMW, middleware.HashResponseMW(key)).Route("/", func(r chi.Router) {
+	r.With(middleware.LoggingMw, middleware.CheckIPMW(ip), middleware.DecryptMW(cs), middleware.ValidateHashMW(key), middleware.GzipMW, middleware.HashResponseMW(key)).Route("/", func(r chi.Router) {
 		r.Get("/", handler.GetAllMetricsHandler(ctx, metricsService))
 		r.With(middleware.ValidationURLRqMw).Post("/update/{type}/{name}/{value}", handler.MetricsHandler(ctx, metricsService))
 		r.Post("/update/", handler.JSONUpdateMetricHandler(ctx, metricsService, publisher))

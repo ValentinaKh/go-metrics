@@ -38,7 +38,7 @@ func ConfigureAgent(shutdownCtx context.Context, cfg *config.AgentArg, rCfg *con
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			NewMetricSender(NewPostSender(cfg.Host,
+			NewMetricSender(MustNewPostSender(cfg.Host,
 				retry.NewRetrier(
 					retry.NewClassifierRetryPolicy(apperror.NewNetworkErrorClassifier(), rCfg.MaxAttempts),
 					retry.NewStaticDelayStrategy(rCfg.Delays),
