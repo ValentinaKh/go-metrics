@@ -5,23 +5,36 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"sync"
 	"testing"
 	"time"
 )
 
-// float64Ptr и int64Ptr для удобства
 func float64Ptr(v float64) *float64 { return &v }
-func int64Ptr(v int64) *int64       { return &v }
 
-// Мок-наблюдатель, который считает вызовы и сохраняет данные
 type mockObserver struct {
+	sync.RWMutex
 	metrics []models.Metrics
 	ip      string
 }
 
 func (m *mockObserver) Update(metrics []models.Metrics, ip string) {
+	m.Lock()
+	defer m.Unlock()
 	m.metrics = metrics
 	m.ip = ip
+}
+
+func (m *mockObserver) GetMetrics() []models.Metrics {
+	m.RLock()
+	defer m.RUnlock()
+	return m.metrics
+}
+
+func (m *mockObserver) GetIP() string {
+	m.RLock()
+	defer m.RUnlock()
+	return m.ip
 }
 
 func TestAuditor_RegisterAndAsyncNotify(t *testing.T) {
@@ -43,6 +56,6 @@ func TestAuditor_RegisterAndAsyncNotify(t *testing.T) {
 		return len(observer.metrics) == 1
 	}, 500*time.Millisecond, 10*time.Millisecond)
 
-	assert.Equal(t, metrics, observer.metrics)
-	assert.Equal(t, ip, observer.ip)
+	assert.Equal(t, metrics, observer.GetMetrics())
+	assert.Equal(t, ip, observer.GetIP())
 }
