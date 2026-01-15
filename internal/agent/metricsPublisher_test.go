@@ -2,13 +2,11 @@ package agent
 
 import (
 	"context"
-	"testing"
-	"time"
-
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-
-	models "github.com/ValentinaKh/go-metrics/internal/model"
+	"testing"
+	"time"
 )
 
 type MockTempStorage struct {
@@ -48,7 +46,8 @@ func TestMetricsPublisher_Publish_SendsMetricsOnTick(t *testing.T) {
 	go publisher.Publish(ctx)
 
 	received := <-outChan
-	assert.JSONEq(t, `[{"id":"metric1","type":"gauge","value":123.45},{"id":"metric2","type":"gauge","value":678.9}]`, string(received))
+	assert.Equal(t, metrics[received[0].ID], received[0])
+	assert.Equal(t, metrics[received[1].ID], received[1])
 
 	mockStorage.AssertExpectations(t)
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/hex"
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 	"github.com/ValentinaKh/go-metrics/internal/utils"
 	"io"
 	"net/http"
@@ -28,8 +29,11 @@ func TestNewPostSender(t *testing.T) {
 		retry.NewStaticDelayStrategy([]time.Duration{10 * time.Millisecond}),
 		&retry.SleepTimeProvider{},
 	)
-
-	sender := MustNewPostSender(host, retrier, secureKey, nil)
+	ip, err := utils.GetLocalIP()
+	if err != nil {
+		require.NoError(t, err)
+	}
+	sender := NewPostSender(host, retrier, secureKey, nil, ip)
 
 	require.NotNil(t, sender)
 
@@ -40,11 +44,11 @@ func TestNewPostSender(t *testing.T) {
 }
 
 func TestHTTPSender_Send_Success(t *testing.T) {
-	expected := `{
+	expected := `[{
 					"id": "LastGC",
   					"type": "gauge",
   					"value": 1744184459
-				}`
+				}]`
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "POST", r.Method)
@@ -70,7 +74,6 @@ func TestHTTPSender_Send_Success(t *testing.T) {
 
 		uncompressedBody, err := io.ReadAll(gz)
 		require.NoError(t, err)
-
 		assert.JSONEq(t, expected, string(uncompressedBody))
 
 		w.WriteHeader(http.StatusOK)
@@ -82,7 +85,12 @@ func TestHTTPSender_Send_Success(t *testing.T) {
 		retry.NewStaticDelayStrategy([]time.Duration{1}),
 		&retry.SleepTimeProvider{})}
 
-	err := sender.Send([]byte(expected))
+	metric := &models.Metrics{
+		ID:    "LastGC",
+		MType: "gauge",
+		Value: toPtr(float64(1744184459)),
+	}
+	err := sender.Send([]*models.Metrics{metric})
 
 	assert.NoError(t, err)
 }
@@ -90,7 +98,14 @@ func TestHTTPSender_Send_Success(t *testing.T) {
 func TestHTTPSender_Send_WithSecureKey(t *testing.T) {
 
 	secureKey := "secret-key"
-	rq := []byte(`{"id":"test","type":"gauge","value":42.0}`)
+	metric := &models.Metrics{
+		ID:    "test",
+		MType: "gauge",
+		Value: toPtr(42.0),
+	}
+	metrics := []*models.Metrics{metric}
+	rq, err2 := convert(metrics)
+	assert.NoError(t, err2)
 
 	var compressedBody bytes.Buffer
 	gz := gzip.NewWriter(&compressedBody)
@@ -120,7 +135,7 @@ func TestHTTPSender_Send_WithSecureKey(t *testing.T) {
 		retry.NewStaticDelayStrategy([]time.Duration{1}),
 		&retry.SleepTimeProvider{}), secureKey: secureKey}
 
-	err = sender.Send(rq)
+	err = sender.Send(metrics)
 	require.NoError(t, err)
 }
 
@@ -130,7 +145,7 @@ func TestHTTPSender_Send_InvalidURL(t *testing.T) {
 		retry.NewStaticDelayStrategy([]time.Duration{1}),
 		&retry.SleepTimeProvider{})}
 
-	err := sender.Send([]byte(`{}`))
+	err := sender.Send([]*models.Metrics{})
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "missing protocol scheme")
@@ -160,4 +175,8 @@ func TestBuildURL(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+func toPtr[T int64 | float64](value T) *T {
+	return &value
 }

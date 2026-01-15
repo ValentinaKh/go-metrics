@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/ValentinaKh/go-metrics/internal/logger"
@@ -23,11 +22,11 @@ type Publisher interface {
 type MetricsPublisher struct {
 	s              TempStorage
 	reportInterval time.Duration
-	mChan          chan []byte
+	mChan          chan []*models.Metrics
 }
 
-func NewMetricsPublisher(s TempStorage, reportInterval time.Duration) (*MetricsPublisher, chan []byte) {
-	mChan := make(chan []byte, 10)
+func NewMetricsPublisher(s TempStorage, reportInterval time.Duration) (*MetricsPublisher, chan []*models.Metrics) {
+	mChan := make(chan []*models.Metrics, 10)
 	return &MetricsPublisher{s: s, reportInterval: reportInterval, mChan: mChan}, mChan
 }
 
@@ -59,10 +58,6 @@ func (s *MetricsPublisher) send() error {
 	for _, m := range metrics {
 		request = append(request, m)
 	}
-	rs, err := json.Marshal(request)
-	if err != nil {
-		return err
-	}
-	s.mChan <- rs
+	s.mChan <- request
 	return nil
 }

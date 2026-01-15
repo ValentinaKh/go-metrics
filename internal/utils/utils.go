@@ -2,6 +2,9 @@ package utils
 
 import (
 	"fmt"
+	"github.com/ValentinaKh/go-metrics/internal/logger"
+	"go.uber.org/zap"
+	"net"
 	"os"
 	"regexp"
 )
@@ -30,4 +33,21 @@ func ToString[T any](ptr *T) string {
 		return "nil"
 	}
 	return fmt.Sprintf("%v", *ptr)
+}
+
+func GetLocalIP() (net.IP, error) {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return nil, err
+	}
+	defer func(conn net.Conn) {
+		err := conn.Close()
+		if err != nil {
+			logger.Log.Error("Error closing connection", zap.Error(err))
+		}
+	}(conn)
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	return localAddr.IP, nil
 }

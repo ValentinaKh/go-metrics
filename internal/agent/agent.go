@@ -6,6 +6,10 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"github.com/ValentinaKh/go-metrics/internal/crypto"
+	"github.com/ValentinaKh/go-metrics/internal/logger"
+	"github.com/ValentinaKh/go-metrics/internal/proto/client"
+	"github.com/ValentinaKh/go-metrics/internal/utils"
+	"go.uber.org/zap"
 	"sync"
 	"time"
 
@@ -34,16 +38,31 @@ func ConfigureAgent(shutdownCtx context.Context, cfg *config.AgentArg, rCfg *con
 	}
 
 	var wg sync.WaitGroup
+	ip, err := utils.GetLocalIP()
+	if err != nil {
+		panic(err)
+	}
 	for idx := 0; idx < int(cfg.RateLimit); idx++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			NewMetricSender(MustNewPostSender(cfg.Host,
+			senders := make([]Sender, 0)
+			senders = append(senders, NewPostSender(cfg.Host,
 				retry.NewRetrier(
 					retry.NewClassifierRetryPolicy(apperror.NewNetworkErrorClassifier(), rCfg.MaxAttempts),
 					retry.NewStaticDelayStrategy(rCfg.Delays),
-					&retry.SleepTimeProvider{}), cfg.Key, cs), msgCh).
-				Push(shutdownCtx)
+					&retry.SleepTimeProvider{}), cfg.Key, cs, ip))
+
+			if cfg.GRPCServerPort != "" {
+				grpcClient, err2 := client.NewGRPCClient(cfg.GRPCServerPort, ip)
+				if err2 != nil {
+					logger.Log.Error("Не удалось запустить grpc client", zap.Error(err2))
+				} else {
+					defer grpcClient.Close()
+					senders = append(senders, grpcClient)
+				}
+			}
+			NewMetricSender(senders, msgCh).Push(shutdownCtx)
 		}()
 	}
 

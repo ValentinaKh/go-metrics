@@ -8,6 +8,7 @@ import (
 	"github.com/ValentinaKh/go-metrics/internal/audit/file"
 	"github.com/ValentinaKh/go-metrics/internal/audit/rest"
 	"github.com/ValentinaKh/go-metrics/internal/crypto"
+	"github.com/ValentinaKh/go-metrics/internal/proto/server"
 	"go.uber.org/zap"
 	"net/http"
 	"sync"
@@ -105,19 +106,19 @@ func ConfigureServer(shutdownCtx context.Context, cfg *config.ServerArg, db *sql
 		}
 	}
 	return createServer(shutdownCtx, service.NewMetricsService(strg),
-		healthService, cfg.Host, cfg.Key, cfg.ProfilePort, auditor, cs, ip), nil
+		healthService, cfg, auditor, cs, ip), nil
 
 }
 
 func createServer(ctx context.Context,
 	metricsService *service.MetricsService,
 	healthService handler.HealthChecker,
-	host, key, profileHost string,
+	cfg *config.ServerArg,
 	publisher audit.Publisher,
 	cs *crypto.CryptoService[*rsa.PrivateKey, *rsa.PrivateKey],
 	ip *middleware.TrustedIP) *sync.WaitGroup {
 	r := chi.NewRouter()
-	r.With(middleware.LoggingMw, middleware.CheckIPMW(ip), middleware.DecryptMW(cs), middleware.ValidateHashMW(key), middleware.GzipMW, middleware.HashResponseMW(key)).Route("/", func(r chi.Router) {
+	r.With(middleware.LoggingMw, middleware.CheckIPMW(ip), middleware.DecryptMW(cs), middleware.ValidateHashMW(cfg.Key), middleware.GzipMW, middleware.HashResponseMW(cfg.Key)).Route("/", func(r chi.Router) {
 		r.Get("/", handler.GetAllMetricsHandler(ctx, metricsService))
 		r.With(middleware.ValidationURLRqMw).Post("/update/{type}/{name}/{value}", handler.MetricsHandler(ctx, metricsService))
 		r.Post("/update/", handler.JSONUpdateMetricHandler(ctx, metricsService, publisher))
@@ -130,9 +131,11 @@ func createServer(ctx context.Context,
 	})
 	var wg sync.WaitGroup
 
-	runServer(ctx, host, r, &wg)
+	runServer(ctx, cfg.Host, r, &wg)
 
-	runServer(ctx, profileHost, r, &wg)
+	runServer(ctx, cfg.ProfilePort, r, &wg)
+
+	createGRPCServer(ctx, cfg.GRPCServerPort, cfg.TrustedSubnet, metricsService, &wg)
 
 	return &wg
 }
@@ -160,4 +163,30 @@ func runServer(ctx context.Context, host string, r *chi.Mux, wg *sync.WaitGroup)
 			}
 		}
 	}()
+}
+
+func createGRPCServer(ctx context.Context, port, subnet string, metricsService *service.MetricsService, wg *sync.WaitGroup) error {
+	if port != "" {
+		var interceptor *server.UnaryInterceptor = nil
+		var err error
+		if subnet != "" {
+			interceptor, err = server.NewUnaryInterceptor(subnet)
+			if err != nil {
+				return err
+			}
+		}
+
+		grpcServer := server.NewGRPCServer(port, server.NewMetricsGRPCService(metricsService), interceptor)
+		err = grpcServer.Run()
+		if err != nil {
+			return err
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-ctx.Done()
+			grpcServer.Stop()
+		}()
+	}
+	return nil
 }
