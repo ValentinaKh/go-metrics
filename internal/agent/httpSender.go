@@ -6,8 +6,11 @@ import (
 	"context"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"github.com/ValentinaKh/go-metrics/internal/crypto"
+	models "github.com/ValentinaKh/go-metrics/internal/model"
+	"net"
 	"net/url"
 
 	"github.com/go-resty/resty/v2"
@@ -25,19 +28,24 @@ type HTTPSender struct {
 	retrier   *retry.Retrier
 	secureKey string
 	cs        *crypto.CryptoService[*x509.Certificate, *rsa.PublicKey]
+	ip        net.IP
 }
 
 func NewPostSender(host string, retrier *retry.Retrier, secureKey string,
-	cs *crypto.CryptoService[*x509.Certificate, *rsa.PublicKey]) *HTTPSender {
-	return &HTTPSender{client: resty.New(), url: buildURL(host), retrier: retrier, secureKey: secureKey, cs: cs}
+	cs *crypto.CryptoService[*x509.Certificate, *rsa.PublicKey], ip net.IP) *HTTPSender {
+	return &HTTPSender{client: resty.New(), url: buildURL(host), retrier: retrier, secureKey: secureKey, cs: cs, ip: ip}
 }
 
 // Send - Отправляет сжатые по gzip, а так же подписанные, если задан ключ, SHA256 данные на сервер.
 // В случае неудачи повторяет попытку в соотвествии с настройками retrier.
-func (s *HTTPSender) Send(data []byte) error {
+func (s *HTTPSender) Send(data []*models.Metrics) error {
+	res, errCvrt := convert(data)
+	if errCvrt != nil {
+		return errCvrt
+	}
 	var compressedBody bytes.Buffer
 	gz := gzip.NewWriter(&compressedBody)
-	_, err := gz.Write(data)
+	_, err := gz.Write(res)
 	if err != nil {
 		return err
 	}
@@ -49,7 +57,7 @@ func (s *HTTPSender) Send(data []byte) error {
 	response, err := retry.DoWithRetry(context.TODO(), s.retrier, func() (*resty.Response, error) {
 		body := compressedBody.Bytes()
 		prep := s.client.R().
-			SetHeaders(map[string]string{"Content-Type": "application/json", "Content-Encoding": "gzip"})
+			SetHeaders(map[string]string{"Content-Type": "application/json", "Content-Encoding": "gzip", "X-Real-IP": s.ip.String()})
 
 		if s.secureKey != "" {
 			hash := utils.Hash(s.secureKey, body)
@@ -74,6 +82,8 @@ func (s *HTTPSender) Send(data []byte) error {
 	return nil
 }
 
+func (s *HTTPSender) Close() {}
+
 func buildURL(host string) string {
 	u := &url.URL{
 		Scheme: "http",
@@ -81,4 +91,12 @@ func buildURL(host string) string {
 		Path:   "/updates/",
 	}
 	return u.String()
+}
+
+func convert(request []*models.Metrics) ([]byte, error) {
+	rs, err := json.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+	return rs, nil
 }

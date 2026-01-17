@@ -35,24 +35,28 @@ type ServerArg struct {
 	AuditURL       string
 	ProfilePort    string
 	AuditQueueSize uint64
+	TrustedSubnet  string `json:"trusted_subnet"`
 }
 
 type CommonArgs struct {
-	Host      string `json:"address"`
-	Key       string `json:"key"`
-	CryptoKey string `json:"crypto_key"`
+	Host           string `json:"address"`
+	Key            string `json:"key"`
+	CryptoKey      string `json:"crypto_key"`
+	GRPCServerPort string `json:"grpc_server_port"`
 }
 
 func registerCommonFlags(cfg *CommonArgs) {
 	flag.StringVar(&cfg.Host, "a", "localhost:8080", "address for endpoint")
 	flag.StringVar(&cfg.Key, "k", "", "key")
 	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "")
+	flag.StringVar(&cfg.GRPCServerPort, "grpc", configOrDefault(cfg.GRPCServerPort, ":3200"), "GRPCServerPort")
 }
 
 func getCommonEnvVars(cfg *CommonArgs) {
-	cfg.Host = utils.LoadEnvVar("ADDRESS", cfg.Host, func(s string) (string, error) { return s, nil })
-	cfg.Key = utils.LoadEnvVar("KEY", cfg.Key, func(s string) (string, error) { return s, nil })
-	cfg.CryptoKey = utils.LoadEnvVar("CRYPTO_KEY", cfg.CryptoKey, func(s string) (string, error) { return s, nil })
+	cfg.Host = utils.LoadEnvVar("ADDRESS", cfg.Host, strParser)
+	cfg.Key = utils.LoadEnvVar("KEY", cfg.Key, strParser)
+	cfg.CryptoKey = utils.LoadEnvVar("CRYPTO_KEY", cfg.CryptoKey, strParser)
+	cfg.GRPCServerPort = utils.LoadEnvVar("GRPC_SERVER_PORT", cfg.GRPCServerPort, strParser)
 }
 
 func MustParseAgentArgs() *AgentArg {
@@ -90,8 +94,9 @@ func MustParseServerArgs() *ServerArg {
 	flag.Uint64Var(&cfg.AuditQueueSize, "b", 300, "audit queue size")
 	flag.StringVar(&cfg.File, "f", configOrDefault(cfg.File, "metrics.json"), "file name")
 	flag.StringVar(&cfg.AuditFile, "audit-file", "audit.json", "file name")
-	flag.StringVar(&cfg.AuditURL, "audit-url", "http://localhost:8080", "url")
+	flag.StringVar(&cfg.AuditURL, "audit-url", "", "url")
 	flag.BoolVar(&cfg.Restore, "r", configOrDefault(cfg.Restore, true), "load history")
+	flag.StringVar(&cfg.TrustedSubnet, "t", configOrDefault(cfg.TrustedSubnet, ""), "TrustedSubnet")
 
 	flag.Parse()
 
@@ -101,9 +106,10 @@ func MustParseServerArgs() *ServerArg {
 	cfg.File = utils.LoadEnvVar("FILE_STORAGE_PATH", cfg.File, strParser)
 	cfg.AuditFile = utils.LoadEnvVar("AUDIT_FILE", cfg.AuditFile, strParser)
 	cfg.AuditURL = utils.LoadEnvVar("AUDIT_URL", cfg.AuditURL, strParser)
-	cfg.AuditURL = utils.LoadEnvVar("PROFILE_PORT", cfg.ProfilePort, strParser)
+	cfg.ProfilePort = utils.LoadEnvVar("PROFILE_PORT", cfg.ProfilePort, strParser)
 	cfg.Interval = utils.LoadEnvVar("STORE_INTERVAL", cfg.Interval, uintParser)
 	cfg.Restore = utils.LoadEnvVar("RESTORE", cfg.Restore, boolParser)
+	cfg.TrustedSubnet = utils.LoadEnvVar("TRUSTED_SUBNET", cfg.TrustedSubnet, strParser)
 
 	return &cfg
 }

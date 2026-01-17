@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	models "github.com/ValentinaKh/go-metrics/internal/model"
 
 	"go.uber.org/zap"
 
@@ -15,15 +16,16 @@ type ServerSender interface {
 
 // Sender - интерфейс для отправки метрик
 type Sender interface {
-	Send(data []byte) error
+	Close()
+	Send(data []*models.Metrics) error
 }
 
 type MetricSender struct {
-	h     Sender
-	mChan chan []byte
+	h     []Sender
+	mChan chan []*models.Metrics
 }
 
-func NewMetricSender(h Sender, mChan chan []byte) *MetricSender {
+func NewMetricSender(h []Sender, mChan chan []*models.Metrics) *MetricSender {
 	return &MetricSender{h, mChan}
 }
 
@@ -32,14 +34,19 @@ func (s *MetricSender) Push(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			for _, h := range s.h {
+				h.Close()
+			}
 			logger.Log.Info("close MetricSender")
 			return
 		case msg, ok := <-s.mChan:
 			if !ok {
 				return
 			}
-			if err := s.h.Send(msg); err != nil {
-				logger.Log.Error("Error while send", zap.Error(err))
+			for _, h := range s.h {
+				if err := h.Send(msg); err != nil {
+					logger.Log.Error("Error while send", zap.Error(err))
+				}
 			}
 		}
 	}

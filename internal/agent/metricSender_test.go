@@ -3,11 +3,11 @@ package agent
 import (
 	"context"
 	"errors"
+	models "github.com/ValentinaKh/go-metrics/internal/model"
+	"github.com/stretchr/testify/mock"
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/mock"
 )
 
 type MockSender struct {
@@ -15,23 +15,36 @@ type MockSender struct {
 	mu sync.Mutex
 }
 
-func (m *MockSender) Send(data []byte) error {
+func (m *MockSender) Send(data []*models.Metrics) error {
 	args := m.Called(data)
 	return args.Error(0)
 }
 
+func (m *MockSender) Close() {
+}
+
 func TestMetricSender_Push_SendsData(t *testing.T) {
 	mockSender := new(MockSender)
-	mChan := make(chan []byte, 10)
+	mChan := make(chan []*models.Metrics, 10)
 
-	sender := NewMetricSender(mockSender, mChan)
+	sender := NewMetricSender([]Sender{mockSender}, mChan)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	go sender.Push(ctx)
 
-	data1 := []byte("test-metric-1")
-	data2 := []byte("test-metric-2")
+	data1 := []*models.Metrics{{
+		ID:    "test",
+		MType: "gauge",
+		Value: toPtr(42.0),
+	},
+	}
+	data2 := []*models.Metrics{{
+		ID:    "test",
+		MType: "gauge",
+		Value: toPtr(45.0),
+	},
+	}
 
 	mockSender.On("Send", data1).Return(nil)
 	mockSender.On("Send", data2).Return(nil)
@@ -47,17 +60,22 @@ func TestMetricSender_Push_SendsData(t *testing.T) {
 
 func TestMetricSender_Push_StopsOnContextCancel(t *testing.T) {
 	mockSender := new(MockSender)
-	mChan := make(chan []byte, 10)
+	mChan := make(chan []*models.Metrics, 10)
 	defer close(mChan)
 
-	sender := NewMetricSender(mockSender, mChan)
+	sender := NewMetricSender([]Sender{mockSender}, mChan)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go sender.Push(ctx)
 	cancel()
 	time.Sleep(50 * time.Millisecond)
 
-	mChan <- []byte("should-not-be-sent")
+	mChan <- []*models.Metrics{{
+		ID:    "test",
+		MType: "gauge",
+		Value: toPtr(42.0),
+	},
+	}
 
 	time.Sleep(50 * time.Millisecond)
 
@@ -66,16 +84,26 @@ func TestMetricSender_Push_StopsOnContextCancel(t *testing.T) {
 
 func TestMetricSender_Push_ContinuesOnSendError(t *testing.T) {
 	mockSender := new(MockSender)
-	mChan := make(chan []byte, 10)
+	mChan := make(chan []*models.Metrics, 10)
 
-	sender := NewMetricSender(mockSender, mChan)
+	sender := NewMetricSender([]Sender{mockSender}, mChan)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	go sender.Push(ctx)
 
-	data1 := []byte("error-metric")
-	data2 := []byte("next-metric")
+	data1 := []*models.Metrics{{
+		ID:    "error",
+		MType: "gauge",
+		Value: toPtr(42.0),
+	},
+	}
+	data2 := []*models.Metrics{{
+		ID:    "next",
+		MType: "gauge",
+		Value: toPtr(42.0),
+	},
+	}
 
 	mockSender.On("Send", data1).Return(errors.New("send failed"))
 	mockSender.On("Send", data2).Return(nil)
