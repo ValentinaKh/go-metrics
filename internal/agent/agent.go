@@ -42,6 +42,13 @@ func ConfigureAgent(shutdownCtx context.Context, cfg *config.AgentArg, rCfg *con
 	if err != nil {
 		panic(err)
 	}
+	var grpcClient *client.GRPCClient
+	if cfg.GRPCServerPort != "" {
+		grpcClient, err = client.NewGRPCClient(cfg.GRPCServerPort, ip)
+		if err != nil {
+			logger.Log.Error("Не удалось запустить grpc client", zap.Error(err))
+		}
+	}
 	for idx := 0; idx < int(cfg.RateLimit); idx++ {
 		wg.Add(1)
 		go func() {
@@ -53,14 +60,8 @@ func ConfigureAgent(shutdownCtx context.Context, cfg *config.AgentArg, rCfg *con
 					retry.NewStaticDelayStrategy(rCfg.Delays),
 					&retry.SleepTimeProvider{}), cfg.Key, cs, ip))
 
-			if cfg.GRPCServerPort != "" {
-				grpcClient, err2 := client.NewGRPCClient(cfg.GRPCServerPort, ip)
-				if err2 != nil {
-					logger.Log.Error("Не удалось запустить grpc client", zap.Error(err2))
-				} else {
-					defer grpcClient.Close()
-					senders = append(senders, grpcClient)
-				}
+			if grpcClient != nil {
+				senders = append(senders, grpcClient)
 			}
 			NewMetricSender(senders, msgCh).Push(shutdownCtx)
 		}()

@@ -16,6 +16,7 @@ type ServerSender interface {
 
 // Sender - интерфейс для отправки метрик
 type Sender interface {
+	Close()
 	Send(data []*models.Metrics) error
 }
 
@@ -33,6 +34,9 @@ func (s *MetricSender) Push(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			for _, h := range s.h {
+				h.Close()
+			}
 			logger.Log.Info("close MetricSender")
 			return
 		case msg, ok := <-s.mChan:

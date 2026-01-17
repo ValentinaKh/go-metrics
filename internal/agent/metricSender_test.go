@@ -20,6 +20,9 @@ func (m *MockSender) Send(data []*models.Metrics) error {
 	return args.Error(0)
 }
 
+func (m *MockSender) Close() {
+}
+
 func TestMetricSender_Push_SendsData(t *testing.T) {
 	mockSender := new(MockSender)
 	mChan := make(chan []*models.Metrics, 10)

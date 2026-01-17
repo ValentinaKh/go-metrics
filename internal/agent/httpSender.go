@@ -82,6 +82,8 @@ func (s *HTTPSender) Send(data []*models.Metrics) error {
 	return nil
 }
 
+func (s *HTTPSender) Close() {}
+
 func buildURL(host string) string {
 	u := &url.URL{
 		Scheme: "http",
